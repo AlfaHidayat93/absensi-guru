@@ -179,7 +179,8 @@ function calculateStats(siswa, absensi, nilai) {
           kelasAttendance[kelas] = { totalSlots: 0, totalHadir: 0 };
         }
         Object.keys(detail).forEach(function(nis) {
-          var status = detail[nis];
+          var val = detail[nis];
+          var status = (typeof val === 'object' && val !== null) ? (val.status || "Hadir") : val;
           kelasAttendance[kelas].totalSlots++;
           totalSlotsGlobal++;
           if (status === "Hadir" || status === "H") {

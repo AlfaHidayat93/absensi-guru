@@ -81,6 +81,8 @@ class AttendanceController extends Controller
         $existingRecord   = null;
         $detailKehadiran  = [];
         $matchingRecords  = [];
+        $rekapSiswa       = [];
+        $totalPertemuan   = 0;
 
         if ($selectedClass) {
             $students = collect($allSiswa)
@@ -111,7 +113,6 @@ class AttendanceController extends Controller
             if ($existingRecord) {
                 $detailKehadiran = json_decode($existingRecord['Detail_Kehadiran'] ?? '{}', true) ?? [];
                 
-                // Safety formatting for time inputs (supporting ISO timestamps or HH:mm)
                 try {
                     if (!empty($existingRecord['Jam_Mulai'])) {
                         $existingRecord['Jam_Mulai'] = \Illuminate\Support\Carbon::parse($existingRecord['Jam_Mulai'])->format('H:i');
@@ -120,7 +121,6 @@ class AttendanceController extends Controller
                         $existingRecord['Jam_Selesai'] = \Illuminate\Support\Carbon::parse($existingRecord['Jam_Selesai'])->format('H:i');
                     }
                 } catch (\Exception $e) {
-                    // Fallback to substring if parsing fails
                     if (isset($existingRecord['Jam_Mulai'])) {
                         $existingRecord['Jam_Mulai'] = substr($existingRecord['Jam_Mulai'], 0, 5);
                     }
@@ -129,12 +129,94 @@ class AttendanceController extends Controller
                     }
                 }
             }
+
+            // Hitung Rekapitulasi Kehadiran & Keaktifan untuk kelas & semester terpilih
+            $classAbsensiList = collect($allAbsensi)
+                ->filter(fn ($a) => $a['Kelas'] === $selectedClass && ($a['Semester'] ?? 'Ganjil') === $selectedSemester)
+                ->values();
+
+            $totalPertemuan = $classAbsensiList->count();
+
+            foreach ($students as $st) {
+                $nis = (string)$st['NIS'];
+                $rekapSiswa[$nis] = [
+                    'hadir'      => 0,
+                    'sakit'      => 0,
+                    'izin'       => 0,
+                    'alpa'       => 0,
+                    'total'      => 0,
+                    'persentase' => 0,
+                    'bintang'    => 0,
+                    'peringatan' => 0,
+                    'catatan'    => [],
+                ];
+            }
+
+            foreach ($classAbsensiList as $abs) {
+                $rawDetail = json_decode($abs['Detail_Kehadiran'] ?? '{}', true) ?? [];
+                $tgl = $abs['Tanggal'] ?? '';
+                $mapel = $abs['Mata_Pelajaran'] ?? '';
+
+                foreach ($rawDetail as $nis => $item) {
+                    $nis = (string)$nis;
+                    if (!isset($rekapSiswa[$nis])) {
+                        continue;
+                    }
+
+                    $status = 'Hadir';
+                    $note = '';
+                    $keaktifan = 'normal';
+
+                    if (is_array($item)) {
+                        $status = $item['status'] ?? 'Hadir';
+                        $note = $item['note'] ?? '';
+                        $keaktifan = $item['keaktifan'] ?? 'normal';
+                    } else {
+                        $status = (string)$item;
+                    }
+
+                    $rekapSiswa[$nis]['total']++;
+
+                    $statusLower = strtolower($status);
+                    if ($statusLower === 'hadir' || $statusLower === 'h') {
+                        $rekapSiswa[$nis]['hadir']++;
+                    } elseif ($statusLower === 'sakit' || $statusLower === 's') {
+                        $rekapSiswa[$nis]['sakit']++;
+                    } elseif ($statusLower === 'izin' || $statusLower === 'i') {
+                        $rekapSiswa[$nis]['izin']++;
+                    } elseif ($statusLower === 'alpa' || $statusLower === 'a') {
+                        $rekapSiswa[$nis]['alpa']++;
+                    }
+
+                    if ($keaktifan === 'aktif' || $keaktifan === 'bintang') {
+                        $rekapSiswa[$nis]['bintang']++;
+                    } elseif ($keaktifan === 'tidak_aktif' || $keaktifan === 'peringatan') {
+                        $rekapSiswa[$nis]['peringatan']++;
+                    }
+
+                    if (!empty($note) || $keaktifan !== 'normal') {
+                        $rekapSiswa[$nis]['catatan'][] = [
+                            'tanggal'   => $tgl,
+                            'mapel'     => $mapel,
+                            'note'      => $note,
+                            'keaktifan' => $keaktifan,
+                            'status'    => $status,
+                        ];
+                    }
+                }
+            }
+
+            foreach ($rekapSiswa as $nis => &$stat) {
+                $stat['persentase'] = $stat['total'] > 0 ? round(($stat['hadir'] / $stat['total']) * 100) : 0;
+            }
+            unset($stat);
         }
 
         return view('attendance', compact(
             'classes', 'semesters', 'subjects', 'students', 'existingRecord',
             'detailKehadiran', 'selectedClass', 'selectedSemester', 'selectedDate',
-            'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedJamMulai', 'selectedJamSelesai', 'teachers'
+            'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedJamMulai',
+            'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan'
         ));
     }
 
@@ -149,7 +231,25 @@ class AttendanceController extends Controller
             'mata_pelajaran' => 'nullable|string',
             'guru'           => 'required|string',
             'status'         => 'required|array',
+            'notes'          => 'nullable|array',
+            'keaktifan'      => 'nullable|array',
         ]);
+
+        $detail = [];
+        foreach ($request->status as $nis => $st) {
+            $note = trim($request->input("notes.$nis", ''));
+            $keaktifan = $request->input("keaktifan.$nis", 'normal');
+
+            if (!empty($note) || $keaktifan !== 'normal') {
+                $detail[$nis] = [
+                    'status'    => $st,
+                    'note'      => $note,
+                    'keaktifan' => $keaktifan,
+                ];
+            } else {
+                $detail[$nis] = $st;
+            }
+        }
 
         $payload = [
             'kelas'         => $request->kelas,
@@ -161,7 +261,7 @@ class AttendanceController extends Controller
             'guru'          => $request->guru ?? '',
             'materi'        => $request->materi ?? '',
             'catatan'       => $request->catatan ?? '',
-            'detail'        => $request->status,
+            'detail'        => $detail,
         ];
 
         if ($request->filled('id_absen')) {

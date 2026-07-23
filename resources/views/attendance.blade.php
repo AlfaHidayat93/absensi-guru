@@ -22,7 +22,9 @@
 {{-- ── FILTER PANEL ──────────────────────────────────────────────────────── --}}
 <div class="card no-print">
   <div class="card-header">
-    <h3 class="text-sm font-bold text-slate-700">Konfigurasi Sesi Pembelajaran</h3>
+    <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+      <i class="fa-solid fa-sliders text-indigo-500"></i> Konfigurasi Sesi Pembelajaran
+    </h3>
   </div>
   <div class="card-body">
     <form action="{{ route('attendance.index') }}" method="GET"
@@ -75,7 +77,6 @@
           </select>
         </div>
       @endif
-      {{-- Dummy spacer untuk trigger jika belum ada kelas --}}
       <div class="flex items-end">
         <button type="submit" class="btn btn-outline w-full justify-center text-xs py-2.5">
           <i class="fa-solid fa-filter text-indigo-500"></i> Tampilkan
@@ -86,6 +87,95 @@
 </div>
 
 @if($selectedClass)
+
+{{-- ── REKAPITULASI KEHADIRAN & KEAKTIFAN SEBELUMNYA ────────────────────── --}}
+<div class="card no-print mb-6">
+  <div class="card-header flex items-center justify-between cursor-pointer select-none" onclick="toggleRekapSection()">
+    <div class="flex items-center gap-2">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <i class="fa-solid fa-chart-pie text-indigo-500"></i> Rekapitulasi Kehadiran & Keaktifan Kelas {{ $selectedClass }}
+      </h3>
+      <span class="badge bg-indigo-50 text-indigo-700">Total Sesi: {{ $totalPertemuan }} Pertemuan</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-slate-400 font-semibold">Klik untuk lipat/buka</span>
+      <i id="rekapToggleIcon" class="fa-solid fa-chevron-down text-slate-400 transition-transform"></i>
+    </div>
+  </div>
+
+  <div id="rekapContentSection" class="card-body border-t border-slate-100 hidden space-y-4">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600 border border-slate-100 rounded-xl overflow-hidden">
+        <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider">
+          <tr>
+            <th class="px-4 py-3 w-12 text-center">No</th>
+            <th class="px-4 py-3 w-28">NIS</th>
+            <th class="px-4 py-3">Nama Siswa</th>
+            <th class="px-4 py-3 text-center text-emerald-600 font-bold">Hadir (H)</th>
+            <th class="px-4 py-3 text-center text-amber-500 font-bold">Sakit (S)</th>
+            <th class="px-4 py-3 text-center text-blue-500 font-bold">Izin (I)</th>
+            <th class="px-4 py-3 text-center text-rose-600 font-bold">Alpa (A)</th>
+            <th class="px-4 py-3 text-center font-bold">Total</th>
+            <th class="px-4 py-3 text-center">Presensi (%)</th>
+            <th class="px-4 py-3">Status Keaktifan & Catatan Terakhir</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          @forelse($students as $idx => $st)
+            @php
+              $nis = (string)$st['NIS'];
+              $stat = $rekapSiswa[$nis] ?? ['hadir'=>0,'sakit'=>0,'izin'=>0,'alpa'=>0,'total'=>0,'persentase'=>0,'bintang'=>0,'peringatan'=>0,'catatan'=>[]];
+              $pct = $stat['persentase'];
+              $pctColor = $pct >= 85 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ($pct >= 75 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200');
+            @endphp
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="px-4 py-2.5 text-center font-medium text-slate-400">{{ $idx + 1 }}</td>
+              <td class="px-4 py-2.5 font-mono text-slate-500">{{ $nis }}</td>
+              <td class="px-4 py-2.5 font-bold text-slate-800">{{ $st['Nama Siswa'] ?? $st['Nama'] ?? '-' }}</td>
+              <td class="px-4 py-2.5 text-center font-bold text-emerald-600 bg-emerald-50/30">{{ $stat['hadir'] }}</td>
+              <td class="px-4 py-2.5 text-center font-bold text-amber-600 bg-amber-50/30">{{ $stat['sakit'] }}</td>
+              <td class="px-4 py-2.5 text-center font-bold text-blue-600 bg-blue-50/30">{{ $stat['izin'] }}</td>
+              <td class="px-4 py-2.5 text-center font-bold text-rose-600 bg-rose-50/30">{{ $stat['alpa'] }}</td>
+              <td class="px-4 py-2.5 text-center font-bold text-slate-700">{{ $stat['total'] }}</td>
+              <td class="px-4 py-2.5 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold border {{ $pctColor }}">
+                  {{ $pct }}%
+                </span>
+              </td>
+              <td class="px-4 py-2.5">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  @if($stat['bintang'] > 0)
+                    <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md font-bold text-[10px] flex items-center gap-1">
+                      ⭐ {{ $stat['bintang'] }}x Aktif
+                    </span>
+                  @endif
+                  @if($stat['peringatan'] > 0)
+                    <span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-md font-bold text-[10px] flex items-center gap-1">
+                      ⚠️ {{ $stat['peringatan'] }}x Tidak Aktif
+                    </span>
+                  @endif
+                  @if(!empty($stat['catatan']))
+                    @php $lastNote = end($stat['catatan']); @endphp
+                    <span class="text-[11px] text-slate-600 italic bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[220px]" title="{{ $lastNote['note'] ?? '' }}">
+                      "{{ $lastNote['note'] ?? '' }}"
+                    </span>
+                  @elseif($stat['bintang'] == 0 && $stat['peringatan'] == 0)
+                    <span class="text-[11px] text-slate-400 italic">Biasa / Normal</span>
+                  @endif
+                </div>
+              </td>
+            </tr>
+          @empty
+            <tr>
+              <td colspan="10" class="px-4 py-6 text-center text-slate-400 italic">Belum ada data rekapitulasi.</td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 {{-- ── FORM ABSENSI ─────────────────────────────────────────────────────── --}}
 <form action="{{ route('attendance.store') }}" method="POST"
       @if($existingRecord) data-original-jam-mulai="{{ $existingRecord['Jam_Mulai'] ?? '' }}"
@@ -100,9 +190,11 @@
   <input type="hidden" name="session" value="{{ $selectedSession }}">
 
   {{-- Detail Sesi --}}
-  <div class="card no-print">
+  <div class="card no-print mb-6">
     <div class="card-header">
-      <h3 class="text-sm font-bold text-slate-700">Detail Sesi Pembelajaran</h3>
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left text-indigo-500"></i> Detail Sesi Pembelajaran
+      </h3>
       @if($existingRecord)
         <span class="badge bg-amber-50 text-amber-700 border border-amber-200">
           <i class="fa-solid fa-pen-to-square mr-1"></i> Update Absensi
@@ -144,8 +236,8 @@
                placeholder="Tuliskan topik pembelajaran hari ini..." class="form-input">
       </div>
       <div class="md:col-span-2">
-        <label class="form-label">Catatan Pembelajaran / Evaluasi</label>
-        <textarea name="catatan" rows="2" placeholder="Catatan kelas, tugas, atau kejadian khusus..."
+        <label class="form-label">Catatan Kelas / Evaluasi Umum</label>
+        <textarea name="catatan" rows="2" placeholder="Catatan umum kelas, tugas, atau kejadian khusus..."
                   class="form-input resize-none">{{ $existingRecord['Catatan_Kelas'] ?? '' }}</textarea>
       </div>
     </div>
@@ -153,9 +245,9 @@
 
   {{-- Tabel Kehadiran --}}
   <div class="card overflow-hidden">
-    <div class="card-header">
+    <div class="card-header flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <h3 class="text-sm font-bold text-slate-700">Lembar Kehadiran</h3>
+        <h3 class="text-sm font-bold text-slate-700">Lembar Presensi & Keaktifan Siswa</h3>
         <span class="badge bg-indigo-50 text-indigo-700">Kelas {{ $selectedClass }}</span>
       </div>
       <button type="button" onclick="window.print()"
@@ -168,17 +260,30 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th class="w-14">No.</th>
-            <th class="w-28">NIS</th>
-            <th>Nama Siswa</th>
-            <th class="text-center">Status Kehadiran</th>
+            <th class="w-12 text-center">No</th>
+            <th class="w-24">NIS</th>
+            <th>Nama Siswa & Rekap Kehadiran</th>
+            <th class="text-center w-52">Status Presensi</th>
+            <th class="text-center w-48 no-print">Keaktifan di Kelas</th>
+            <th class="w-64 no-print">Catatan Siswa</th>
           </tr>
         </thead>
         <tbody>
           @forelse($students as $idx => $student)
             @php
-              $nis     = $student['NIS'];
-              $current = $detailKehadiran[$nis] ?? 'Hadir';
+              $nis        = (string)$student['NIS'];
+              $rawCurrent = $detailKehadiran[$nis] ?? 'Hadir';
+              
+              if (is_array($rawCurrent)) {
+                  $currentStatus    = $rawCurrent['status'] ?? 'Hadir';
+                  $currentNote      = $rawCurrent['note'] ?? '';
+                  $currentKeaktifan = $rawCurrent['keaktifan'] ?? 'normal';
+              } else {
+                  $currentStatus    = (string)$rawCurrent;
+                  $currentNote      = '';
+                  $currentKeaktifan = 'normal';
+              }
+
               $statuses = ['Hadir', 'Sakit', 'Izin', 'Alpa'];
               $colors  = [
                 'Hadir' => 'text-emerald-600',
@@ -186,34 +291,68 @@
                 'Izin'  => 'text-blue-500',
                 'Alpa'  => 'text-rose-600',
               ];
+
+              $stat = $rekapSiswa[$nis] ?? ['hadir'=>0,'sakit'=>0,'izin'=>0,'alpa'=>0,'total'=>0,'persentase'=>0];
             @endphp
-            <tr>
-              <td class="text-slate-400 text-xs">{{ $idx + 1 }}</td>
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="text-slate-400 text-xs text-center">{{ $idx + 1 }}</td>
               <td class="font-mono text-xs text-slate-500">{{ $nis }}</td>
-              <td class="font-semibold">{{ $student['Nama Siswa'] ?? $student['Nama'] ?? '-' }}</td>
+              <td>
+                <div class="font-semibold text-slate-800">{{ $student['Nama Siswa'] ?? $student['Nama'] ?? '-' }}</div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5 no-print">
+                  <span class="px-1.5 py-0.2 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono">
+                    H:{{ $stat['hadir'] }} | S:{{ $stat['sakit'] }} | I:{{ $stat['izin'] }} | A:{{ $stat['alpa'] }}
+                  </span>
+                  <span class="font-bold {{ $stat['persentase'] >= 85 ? 'text-emerald-600' : ($stat['persentase'] >= 75 ? 'text-amber-600' : 'text-rose-600') }}">
+                    ({{ $stat['persentase'] }}%)
+                  </span>
+                </div>
+              </td>
               <td>
                 {{-- Screen: Radio buttons --}}
-                <div class="no-print flex flex-wrap justify-center gap-3">
+                <div class="no-print flex items-center justify-center gap-2">
                   @foreach($statuses as $s)
-                    <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+                    <label class="flex items-center gap-1 cursor-pointer select-none group px-1.5 py-1 rounded-lg hover:bg-slate-100 transition-colors">
                       <input type="radio" name="status[{{ $nis }}]" value="{{ $s }}"
-                             {{ $current === $s ? 'checked' : '' }}
-                             class="w-4 h-4 accent-indigo-600">
+                             {{ $currentStatus === $s ? 'checked' : '' }}
+                             class="w-3.5 h-3.5 accent-indigo-600">
                       <span class="text-xs font-semibold text-slate-600 group-has-[:checked]:{{ $colors[$s] }} transition-colors">
-                        {{ $s }}
+                        {{ substr($s, 0, 1) }}<span class="hidden sm:inline">{{ substr($s, 1) }}</span>
                       </span>
                     </label>
                   @endforeach
                 </div>
                 {{-- Print: Static text --}}
-                <div class="hidden print:block text-center font-bold text-sm {{ $colors[$current] ?? '' }}">
-                  {{ $current }}
+                <div class="hidden print:block text-center font-bold text-sm {{ $colors[$currentStatus] ?? '' }}">
+                  {{ $currentStatus }}
                 </div>
+              </td>
+              <td class="no-print text-center">
+                {{-- Toggle Keaktifan (Normal / Aktif / Tidak Aktif) --}}
+                <div class="inline-flex rounded-xl p-0.5 bg-slate-100 border border-slate-200 text-xs select-none">
+                  <label class="cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 {{ $currentKeaktifan === 'aktif' ? 'bg-amber-400 text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                    <input type="radio" name="keaktifan[{{ $nis }}]" value="aktif" {{ $currentKeaktifan === 'aktif' ? 'checked' : '' }} class="hidden">
+                    <span>⭐ Aktif</span>
+                  </label>
+                  <label class="cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 {{ $currentKeaktifan === 'normal' ? 'bg-white text-slate-700 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                    <input type="radio" name="keaktifan[{{ $nis }}]" value="normal" {{ $currentKeaktifan === 'normal' ? 'checked' : '' }} class="hidden">
+                    <span>Biasa</span>
+                  </label>
+                  <label class="cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 {{ $currentKeaktifan === 'tidak_aktif' ? 'bg-rose-500 text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
+                    <input type="radio" name="keaktifan[{{ $nis }}]" value="tidak_aktif" {{ $currentKeaktifan === 'tidak_aktif' ? 'checked' : '' }} class="hidden">
+                    <span>⚠️ Pasif</span>
+                  </label>
+                </div>
+              </td>
+              <td class="no-print">
+                <input type="text" name="notes[{{ $nis }}]" value="{{ $currentNote }}"
+                       placeholder="Catatan keaktifan/sikap..."
+                       class="form-input text-xs py-1.5 px-3">
               </td>
             </tr>
           @empty
             <tr>
-              <td colspan="4" class="text-center py-10 text-slate-400 italic">
+              <td colspan="6" class="text-center py-10 text-slate-400 italic">
                 Belum ada siswa terdaftar di Kelas {{ $selectedClass }}.
               </td>
             </tr>
@@ -239,5 +378,42 @@
     </div>
   </div>
 @endif
+
+<script>
+  function toggleRekapSection() {
+    const section = document.getElementById('rekapContentSection');
+    const icon = document.getElementById('rekapToggleIcon');
+    if (section.classList.contains('hidden')) {
+      section.classList.remove('hidden');
+      icon.classList.add('rotate-180');
+    } else {
+      section.classList.add('hidden');
+      icon.classList.remove('rotate-180');
+    }
+  }
+
+  // Auto handle active styles on keaktifan radios
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input[type="radio"][name^="keaktifan"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const groupName = this.name;
+        document.querySelectorAll(`input[name="${groupName}"]`).forEach(r => {
+          const label = r.closest('label');
+          if (r.checked) {
+            if (r.value === 'aktif') {
+              label.className = 'cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 bg-amber-400 text-white font-bold shadow-sm';
+            } else if (r.value === 'tidak_aktif') {
+              label.className = 'cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 bg-rose-500 text-white font-bold shadow-sm';
+            } else {
+              label.className = 'cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 bg-white text-slate-700 font-bold shadow-sm';
+            }
+          } else {
+            label.className = 'cursor-pointer px-2 py-1 rounded-lg transition-all flex items-center gap-1 text-slate-500 hover:text-slate-800';
+          }
+        });
+      });
+    });
+  });
+</script>
 
 @endsection
