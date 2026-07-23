@@ -60,7 +60,9 @@
 <div class="print-rekap-header text-center border-b-2 border-slate-900 pb-4 mb-6">
   <h1 class="text-xl font-bold uppercase tracking-widest text-slate-900">LAPORAN REKAPITULASI KEHADIRAN & KEAKTIFAN SISWA</h1>
   <p class="text-sm font-semibold text-slate-700 mt-1">
-    Kelas: {{ $selectedClass }} &nbsp;|&nbsp; Semester: {{ $selectedSemester }} &nbsp;|&nbsp; Total Pertemuan Terlaksana: {{ $totalPertemuan }} Sesi
+    Kelas: {{ $selectedClass }} &nbsp;|&nbsp; Semester: {{ $selectedSemester }}
+    @if($selectedSubject) &nbsp;|&nbsp; Mata Pelajaran: {{ $selectedSubject }} @endif
+    &nbsp;|&nbsp; Total Pertemuan: {{ $totalPertemuan }} Sesi
   </p>
   <p class="text-xs text-slate-500 mt-1">Laporan Resmi untuk Wali Kelas & Guru Bimbingan Konseling (BK) — Dicetak Tanggal: {{ date('d/m/Y') }}</p>
 </div>
@@ -69,12 +71,12 @@
 <div class="card no-print mb-6">
   <div class="card-header">
     <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-      <i class="fa-solid fa-sliders text-indigo-500"></i> Konfigurasi Sesi Pembelajaran
+      <i class="fa-solid fa-sliders text-indigo-500"></i> Konfigurasi Sesi Pembelajaran & Filter Laporan
     </h3>
   </div>
   <div class="card-body">
     <form action="{{ route('attendance.index') }}" method="GET"
-          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       <div>
         <label class="form-label">Kelas</label>
         <select name="kelas" onchange="this.form.submit()" class="form-input">
@@ -89,6 +91,15 @@
         <select name="semester" onchange="this.form.submit()" class="form-input">
           @foreach($semesters as $s)
             <option value="{{ $s }}" {{ $selectedSemester == $s ? 'selected' : '' }}>{{ $s }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Mata Pelajaran</label>
+        <select name="mata_pelajaran" onchange="this.form.submit()" class="form-input">
+          <option value="">-- Semua Mapel --</option>
+          @foreach($subjects as $subject)
+            <option value="{{ $subject }}" {{ $selectedSubject === $subject ? 'selected' : '' }}>{{ $subject }}</option>
           @endforeach
         </select>
       </div>
@@ -228,7 +239,7 @@
     <div class="print-rekap-footer text-center text-xs mt-12 pt-6 border-t border-slate-300">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; text-align: center; width: 100%;">
         <div style="flex: 1; text-align: center; padding: 0 10px;">
-          <p class="font-semibold text-slate-700" style="margin-bottom: 60px;">Mengetahui,<br>Guru Mata Pelajaran</p>
+          <p class="font-semibold text-slate-700" style="margin-bottom: 60px;">Mengetahui,<br>Guru Mata Pelajaran {{ $selectedSubject ? $selectedSubject : '' }}</p>
           <p class="font-bold text-slate-900" style="border-bottom: 1px solid #0f172a; display: inline-block; padding: 0 16px 2px 16px;">{{ $selectedGuru ?: (auth()->user()->name ?? 'Guru') }}</p>
         </div>
         <div style="flex: 1; text-align: center; padding: 0 10px;">

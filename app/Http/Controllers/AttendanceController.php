@@ -70,6 +70,7 @@ class AttendanceController extends Controller
         $selectedDate      = $request->query('tanggal', date('Y-m-d'));
         $selectedSession   = $request->query('session');
         $selectedGuru      = $request->query('guru', '');
+        $selectedSubject   = $request->query('mata_pelajaran', '');
         $selectedJamMulai  = $request->query('jam_mulai', '07:30');
         $selectedJamSelesai= $request->query('jam_selesai', '09:00');
 
@@ -112,6 +113,9 @@ class AttendanceController extends Controller
 
             if ($existingRecord) {
                 $detailKehadiran = json_decode($existingRecord['Detail_Kehadiran'] ?? '{}', true) ?? [];
+                if (empty($selectedSubject) && !empty($existingRecord['Mata_Pelajaran'])) {
+                    $selectedSubject = $existingRecord['Mata_Pelajaran'];
+                }
                 
                 try {
                     if (!empty($existingRecord['Jam_Mulai'])) {
@@ -130,9 +134,17 @@ class AttendanceController extends Controller
                 }
             }
 
-            // Hitung Rekapitulasi Kehadiran & Keaktifan untuk kelas & semester terpilih
+            // Hitung Rekapitulasi Kehadiran & Keaktifan untuk kelas & semester (serta mapel jika dipilih)
             $classAbsensiList = collect($allAbsensi)
-                ->filter(fn ($a) => $a['Kelas'] === $selectedClass && ($a['Semester'] ?? 'Ganjil') === $selectedSemester)
+                ->filter(function ($a) use ($selectedClass, $selectedSemester, $selectedSubject) {
+                    if ($a['Kelas'] !== $selectedClass || ($a['Semester'] ?? 'Ganjil') !== $selectedSemester) {
+                        return false;
+                    }
+                    if (!empty($selectedSubject)) {
+                        return ($a['Mata_Pelajaran'] ?? '') === $selectedSubject;
+                    }
+                    return true;
+                })
                 ->values();
 
             $totalPertemuan = $classAbsensiList->count();
@@ -215,8 +227,8 @@ class AttendanceController extends Controller
         return view('attendance', compact(
             'classes', 'semesters', 'subjects', 'students', 'existingRecord',
             'detailKehadiran', 'selectedClass', 'selectedSemester', 'selectedDate',
-            'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedJamMulai',
-            'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan'
+            'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedSubject',
+            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan'
         ));
     }
 
@@ -273,10 +285,11 @@ class AttendanceController extends Controller
         $response = $this->gas->saveAttendance($payload);
 
         $redirectParams = [
-            'kelas'    => $request->kelas,
-            'semester' => $request->semester,
-            'tanggal'  => $request->tanggal,
-            'guru'     => $request->guru,
+            'kelas'          => $request->kelas,
+            'semester'       => $request->semester,
+            'tanggal'        => $request->tanggal,
+            'guru'           => $request->guru,
+            'mata_pelajaran' => $request->mata_pelajaran,
         ];
 
         if ($request->filled('session')) {
