@@ -16,7 +16,10 @@
       display: none !important;
     }
 
-    body.print-rekap-mode .print-rekap-header,
+    body.print-rekap-mode .print-rekap-header {
+      display: block !important;
+    }
+
     body.print-rekap-mode .print-rekap-footer {
       display: block !important;
     }
@@ -221,19 +224,21 @@
       </table>
     </div>
 
-    {{-- Tanda Tangan Khusus Cetak Rekap BK / Wali Kelas --}}
-    <div class="print-rekap-footer grid grid-cols-3 gap-6 text-center text-xs mt-12 pt-6 border-t border-slate-300">
-      <div>
-        <p class="font-semibold text-slate-700 mb-16">Mengetahui,<br>Guru Mata Pelajaran</p>
-        <p class="font-bold text-slate-900 border-b border-slate-900 inline-block px-4 pb-0.5">{{ $selectedGuru ?: (auth()->user()->name ?? 'Guru') }}</p>
-      </div>
-      <div>
-        <p class="font-semibold text-slate-700 mb-16">Mengetahui,<br>Guru Bimbingan Konseling (BK)</p>
-        <p class="font-bold text-slate-900 border-b border-slate-900 inline-block px-4 pb-0.5">( ........................................ )</p>
-      </div>
-      <div>
-        <p class="font-semibold text-slate-700 mb-16">Mengetahui,<br>Wali Kelas {{ $selectedClass }}</p>
-        <p class="font-bold text-slate-900 border-b border-slate-900 inline-block px-4 pb-0.5">( ........................................ )</p>
+    {{-- Tanda Tangan Khusus Cetak Rekap BK / Wali Kelas (Rata Horizontal Side-by-Side) --}}
+    <div class="print-rekap-footer text-center text-xs mt-12 pt-6 border-t border-slate-300">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; text-align: center; width: 100%;">
+        <div style="flex: 1; text-align: center; padding: 0 10px;">
+          <p class="font-semibold text-slate-700" style="margin-bottom: 60px;">Mengetahui,<br>Guru Mata Pelajaran</p>
+          <p class="font-bold text-slate-900" style="border-bottom: 1px solid #0f172a; display: inline-block; padding: 0 16px 2px 16px;">{{ $selectedGuru ?: (auth()->user()->name ?? 'Guru') }}</p>
+        </div>
+        <div style="flex: 1; text-align: center; padding: 0 10px;">
+          <p class="font-semibold text-slate-700" style="margin-bottom: 60px;">Mengetahui,<br>Guru Bimbingan Konseling (BK)</p>
+          <p class="font-bold text-slate-900" style="border-bottom: 1px solid #0f172a; display: inline-block; padding: 0 16px 2px 16px;">( ........................................ )</p>
+        </div>
+        <div style="flex: 1; text-align: center; padding: 0 10px;">
+          <p class="font-semibold text-slate-700" style="margin-bottom: 60px;">Mengetahui,<br>Wali Kelas {{ $selectedClass }}</p>
+          <p class="font-bold text-slate-900" style="border-bottom: 1px solid #0f172a; display: inline-block; padding: 0 16px 2px 16px;">( ........................................ )</p>
+        </div>
       </div>
     </div>
   </div>
