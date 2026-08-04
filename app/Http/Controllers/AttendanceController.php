@@ -12,22 +12,17 @@ use Illuminate\Support\Carbon;
 
 class AttendanceController extends Controller
 {
-    public const SESI_LIST = [
-        'Sesi 1 (Jam Ke 1-2 | 07.30 - 09.00)' => ['mulai' => '07:30', 'selesai' => '09:00', 'label' => 'Sesi 1 (Jam Ke 1-2 | 07.30 - 09.00)'],
-        'Sesi 2 (Jam Ke 3-4 | 09.15 - 10.45)' => ['mulai' => '09:15', 'selesai' => '10:45', 'label' => 'Sesi 2 (Jam Ke 3-4 | 09.15 - 10.45)'],
-        'Sesi 3 (Jam Ke 5-6 | 10.45 - 12.15)' => ['mulai' => '10:45', 'selesai' => '12:15', 'label' => 'Sesi 3 (Jam Ke 5-6 | 10.45 - 12.15)'],
-        'Sesi 4 (Jam Ke 7-8 | 12.45 - 14.15)' => ['mulai' => '12:45', 'selesai' => '14:15', 'label' => 'Sesi 4 (Jam Ke 7-8 | 12.45 - 14.15)'],
-        'Sesi 5 (Jam Ke 9-10 | 14.15 - 15.45)'=> ['mulai' => '14:15', 'selesai' => '15:45', 'label' => 'Sesi 5 (Jam Ke 9-10 | 14.15 - 15.45)'],
-        'Jam Ke-1 (07.30 - 08.15)'            => ['mulai' => '07:30', 'selesai' => '08:15', 'label' => 'Jam Ke-1 (07.30 - 08.15)'],
-        'Jam Ke-2 (08.15 - 09.00)'            => ['mulai' => '08:15', 'selesai' => '09:00', 'label' => 'Jam Ke-2 (08.15 - 09.00)'],
-        'Jam Ke-3 (09.15 - 10.00)'            => ['mulai' => '09:15', 'selesai' => '10:00', 'label' => 'Jam Ke-3 (09.15 - 10.00)'],
-        'Jam Ke-4 (10.00 - 10.45)'            => ['mulai' => '10:00', 'selesai' => '10:45', 'label' => 'Jam Ke-4 (10.00 - 10.45)'],
-        'Jam Ke-5 (10.45 - 11.30)'            => ['mulai' => '10:45', 'selesai' => '11:30', 'label' => 'Jam Ke-5 (10.45 - 11.30)'],
-        'Jam Ke-6 (11.30 - 12.15)'            => ['mulai' => '11:30', 'selesai' => '12:15', 'label' => 'Jam Ke-6 (11.30 - 12.15)'],
-        'Jam Ke-7 (12.45 - 13.30)'            => ['mulai' => '12:45', 'selesai' => '13:30', 'label' => 'Jam Ke-7 (12.45 - 13.30)'],
-        'Jam Ke-8 (13.30 - 14.15)'            => ['mulai' => '13:30', 'selesai' => '14:15', 'label' => 'Jam Ke-8 (13.30 - 14.15)'],
-        'Jam Ke-9 (14.15 - 15.00)'            => ['mulai' => '14:15', 'selesai' => '15:00', 'label' => 'Jam Ke-9 (14.15 - 15.00)'],
-        'Jam Ke-10 (15.00 - 15.45)'           => ['mulai' => '15:00', 'selesai' => '15:45', 'label' => 'Jam Ke-10 (15.00 - 15.45)'],
+    public const JAM_LIST = [
+        'I'    => ['code' => 'I',    'num' => 1,  'label' => 'Jam I',    'mulai' => '07:30', 'selesai' => '08:15'],
+        'II'   => ['code' => 'II',   'num' => 2,  'label' => 'Jam II',   'mulai' => '08:15', 'selesai' => '09:00'],
+        'III'  => ['code' => 'III',  'num' => 3,  'label' => 'Jam III',  'mulai' => '09:15', 'selesai' => '10:00'],
+        'IV'   => ['code' => 'IV',   'num' => 4,  'label' => 'Jam IV',   'mulai' => '10:00', 'selesai' => '10:45'],
+        'V'    => ['code' => 'V',    'num' => 5,  'label' => 'Jam V',    'mulai' => '10:45', 'selesai' => '11:30'],
+        'VI'   => ['code' => 'VI',   'num' => 6,  'label' => 'Jam VI',   'mulai' => '11:30', 'selesai' => '12:15'],
+        'VII'  => ['code' => 'VII',  'num' => 7,  'label' => 'Jam VII',  'mulai' => '12:45', 'selesai' => '13:30'],
+        'VIII' => ['code' => 'VIII', 'num' => 8,  'label' => 'Jam VIII', 'mulai' => '13:30', 'selesai' => '14:15'],
+        'IX'   => ['code' => 'IX',   'num' => 9,  'label' => 'Jam IX',   'mulai' => '14:15', 'selesai' => '15:00'],
+        'X'    => ['code' => 'X',    'num' => 10, 'label' => 'Jam X',    'mulai' => '15:00', 'selesai' => '15:45'],
     ];
 
     public function __construct(protected GoogleSheetService $gas) {}
@@ -228,13 +223,13 @@ class AttendanceController extends Controller
             unset($stat);
         }
 
-        $sesiList = self::SESI_LIST;
+        $jamList = self::JAM_LIST;
 
         return view('attendance', compact(
             'classes', 'semesters', 'subjects', 'students', 'existingRecord',
             'detailKehadiran', 'selectedClass', 'selectedSemester', 'selectedDate',
             'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedSubject',
-            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'sesiList'
+            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList'
         ));
     }
 

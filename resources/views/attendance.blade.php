@@ -32,6 +32,13 @@
   .print-rekap-header, .print-rekap-footer {
     display: none;
   }
+
+  /* Checklist active state styling */
+  .jam-checkbox-card:has(input:checked) {
+    background-color: #eef2ff !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.15) !important;
+  }
 </style>
 
 {{-- Print Header untuk Sesi Harian --}}
@@ -258,11 +265,11 @@
     @endif
     <input type="hidden" name="session" value="{{ $selectedSession }}">
 
-    {{-- Detail Sesi & Pilihan Jam 1-10 --}}
+    {{-- Detail Sesi & Checklist Jam I s/d Jam X --}}
     <div class="card no-print mb-6">
       <div class="card-header">
         <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-          <i class="fa-solid fa-clock text-indigo-500"></i> Detail Jam / Sesi Pembelajaran
+          <i class="fa-solid fa-clock text-indigo-500"></i> Detail Jam Pembelajaran
         </h3>
         @if($existingRecord)
           <span class="badge bg-amber-50 text-amber-700 border border-amber-200">
@@ -272,17 +279,33 @@
       </div>
       <div class="card-body space-y-4">
         
-        {{-- Pilihan Jam Pembelajaran 1 sampai 10 --}}
-        <div class="bg-indigo-50/70 p-4 rounded-xl border border-indigo-100">
-          <label class="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2">
-            ⏰ Pilih Jam Pembelajaran (Jam Ke-1 s/d Jam Ke-10)
-          </label>
-          <select id="presetSesiSelect" onchange="applyPresetSesi(this.value)" class="form-input font-bold text-indigo-800 bg-white border-indigo-200 focus:ring-2 focus:ring-indigo-500">
-            <option value="">-- Pilih Jam / Sesi Pembelajaran (1 – 10) --</option>
-            @foreach($sesiList as $labelKey => $info)
-              <option value="{{ $info['mulai'] }}|{{ $info['selesai'] }}">{{ $info['label'] }}</option>
+        {{-- Checklist Jam Pembelajaran (Jam I s/d Jam X) --}}
+        <div class="bg-indigo-50/70 p-4 rounded-xl border border-indigo-100 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <label class="block text-xs font-bold text-indigo-900 uppercase tracking-wider">
+              ⏰ Checklist Jam Pembelajaran (Jam I s/d Jam X)
+            </label>
+            <span id="selectedJamSummary" class="text-xs font-extrabold text-indigo-700 bg-white px-3 py-1 rounded-full border border-indigo-200 shadow-sm inline-block">
+              Centang satu atau beberapa jam
+            </span>
+          </div>
+
+          {{-- Responsive Grid 5x2 (10 Checklist Buttons) --}}
+          <div class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2">
+            @foreach($jamList as $code => $info)
+              <label class="jam-checkbox-card flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50/50 cursor-pointer select-none transition-all text-center group">
+                <input type="checkbox" name="jam_pembelajaran[]" value="{{ $code }}"
+                       data-mulai="{{ $info['mulai'] }}" data-selesai="{{ $info['selesai'] }}" data-num="{{ $info['num'] }}" data-label="{{ $info['label'] }}"
+                       onchange="updateJamFromChecklist()" class="jamCheckbox w-4 h-4 accent-indigo-600 rounded">
+                <span class="text-xs font-extrabold text-slate-800 mt-1.5 group-has-[:checked]:text-indigo-700">
+                  {{ $info['label'] }}
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono mt-0.5 group-has-[:checked]:text-indigo-600">
+                  {{ $info['mulai'] }}
+                </span>
+              </label>
             @endforeach
-          </select>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -468,13 +491,36 @@
 @endif
 
 <script>
-  function applyPresetSesi(val) {
-    if (!val) return;
-    const parts = val.split('|');
-    if (parts.length === 2) {
-      document.getElementById('jamMulaiInput').value = parts[0];
-      document.getElementById('jamSelesaiInput').value = parts[1];
+  function updateJamFromChecklist() {
+    const checkboxes = Array.from(document.querySelectorAll('.jamCheckbox:checked'));
+    const summarySpan = document.getElementById('selectedJamSummary');
+    const jamMulaiInput = document.getElementById('jamMulaiInput');
+    const jamSelesaiInput = document.getElementById('jamSelesaiInput');
+
+    if (checkboxes.length === 0) {
+      summarySpan.innerText = 'Centang satu atau beberapa jam';
+      summarySpan.className = 'text-xs font-extrabold text-indigo-700 bg-white px-3 py-1 rounded-full border border-indigo-200 shadow-sm inline-block';
+      return;
     }
+
+    // Urutkan berdasarkan data-num (1 - 10)
+    checkboxes.sort((a, b) => parseInt(a.dataset.num) - parseInt(b.dataset.num));
+
+    const first = checkboxes[0];
+    const last = checkboxes[checkboxes.length - 1];
+
+    jamMulaiInput.value = first.dataset.mulai;
+    jamSelesaiInput.value = last.dataset.selesai;
+
+    let rangeText = '';
+    if (checkboxes.length === 1) {
+      rangeText = first.dataset.label;
+    } else {
+      rangeText = first.dataset.label + ' – ' + last.value;
+    }
+
+    summarySpan.innerText = `Terpilih: ${rangeText} (${first.dataset.mulai} - ${last.dataset.selesai})`;
+    summarySpan.className = 'text-xs font-extrabold text-white bg-indigo-600 px-3 py-1 rounded-full shadow-sm inline-block';
   }
 
   function toggleRekapSection() {
@@ -501,6 +547,22 @@
       document.body.classList.remove('print-rekap-mode');
     }, 1000);
   }
+
+  // Pre-check jika ada data existing record
+  document.addEventListener('DOMContentLoaded', () => {
+    const jamMulai = document.getElementById('jamMulaiInput').value;
+    const jamSelesai = document.getElementById('jamSelesaiInput').value;
+
+    if (jamMulai && jamSelesai) {
+      const cbs = document.querySelectorAll('.jamCheckbox');
+      cbs.forEach(cb => {
+        if (cb.dataset.mulai >= jamMulai && cb.dataset.selesai <= jamSelesai) {
+          cb.checked = true;
+        }
+      });
+      updateJamFromChecklist();
+    }
+  });
 </script>
 
 @endsection
