@@ -265,6 +265,34 @@
     @endif
     <input type="hidden" name="session" value="{{ $selectedSession }}">
 
+    {{-- Refleksi Pertemuan Sebelumnya --}}
+    @if(isset($previousRecord) && $previousRecord)
+      <div class="card no-print mb-6 bg-gradient-to-r from-amber-50/80 via-orange-50/50 to-amber-50/80 border-amber-200/80 shadow-sm">
+        <div class="card-header border-b border-amber-200/60 pb-3 flex items-center justify-between">
+          <h3 class="text-sm font-bold text-amber-900 flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-amber-500 text-base"></i> Refleksi Pertemuan Sebelumnya ({{ \Carbon\Carbon::parse($previousRecord->tanggal)->format('d/m/Y') }})
+          </h3>
+          <span class="text-xs font-semibold text-amber-800 bg-amber-100/90 px-3 py-1 rounded-full border border-amber-200 shadow-sm">
+            {{ $previousRecord->mata_pelajaran ?? '-' }}
+          </span>
+        </div>
+        <div class="card-body pt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="bg-white/90 p-3.5 rounded-xl border border-amber-200/70 shadow-sm">
+            <div class="font-bold text-slate-800 mb-1.5 flex items-center gap-2 text-xs">
+              <i class="fa-solid fa-book-open text-indigo-600"></i> Materi Yang Disampaikan:
+            </div>
+            <p class="text-slate-700 font-medium leading-relaxed whitespace-pre-line bg-slate-50 p-2.5 rounded-lg border border-slate-100">{{ $previousRecord->materi_pembelajaran ?: 'Tidak ada catatan materi.' }}</p>
+          </div>
+          <div class="bg-white/90 p-3.5 rounded-xl border border-amber-200/70 shadow-sm">
+            <div class="font-bold text-slate-800 mb-1.5 flex items-center gap-2 text-xs">
+              <i class="fa-solid fa-sticky-note text-amber-600"></i> Catatan Suasana / Refleksi Kelas:
+            </div>
+            <p class="text-slate-700 font-medium leading-relaxed whitespace-pre-line bg-slate-50 p-2.5 rounded-lg border border-slate-100">{{ $previousRecord->catatan_kelas ?: 'Tidak ada catatan khusus kelas.' }}</p>
+          </div>
+        </div>
+      </div>
+    @endif
+
     {{-- Detail Sesi & Checklist Jam I s/d Jam X --}}
     <div class="card no-print mb-6">
       <div class="card-header">
@@ -416,8 +444,8 @@
                       ({{ $stat['persentase'] }}%)
                     </span>
                     @if(($stat['bintang'] ?? 0) > 0)
-                      <span class="px-1.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 rounded-md font-extrabold text-[10px]">
-                        ⭐{{ $stat['bintang'] }}x
+                      <span class="px-1.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 rounded-md font-extrabold text-[10px]" title="1 Bintang = +5 Poin Sikap">
+                        ⭐{{ $stat['bintang'] }}x (+{{ $stat['poin_sikap'] ?? (($stat['bintang'] ?? 0) * 5) }} Poin Sikap)
                       </span>
                     @endif
                     @if(($stat['peringatan'] ?? 0) > 0)

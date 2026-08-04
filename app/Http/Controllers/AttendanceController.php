@@ -219,8 +219,20 @@ class AttendanceController extends Controller
 
             foreach ($rekapSiswa as $nis => &$stat) {
                 $stat['persentase'] = $stat['total'] > 0 ? round(($stat['hadir'] / $stat['total']) * 100) : 0;
+                $stat['poin_sikap'] = $stat['bintang'] * 5;
             }
             unset($stat);
+
+            // Ambil catatan & materi pertemuan sebelumnya untuk refleksi guru
+            $previousRecord = Attendance::where('kelas', $selectedClass)
+                ->where('semester', $selectedSemester)
+                ->when(!empty($selectedSubject), fn($q) => $q->where('mata_pelajaran', $selectedSubject))
+                ->where('tanggal', '<', $selectedDate)
+                ->orderBy('tanggal', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+        } else {
+            $previousRecord = null;
         }
 
         $jamList = self::JAM_LIST;
@@ -229,7 +241,7 @@ class AttendanceController extends Controller
             'classes', 'semesters', 'subjects', 'students', 'existingRecord',
             'detailKehadiran', 'selectedClass', 'selectedSemester', 'selectedDate',
             'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedSubject',
-            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList'
+            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList', 'previousRecord'
         ));
     }
 
