@@ -13,16 +13,16 @@ use Illuminate\Support\Carbon;
 class AttendanceController extends Controller
 {
     public const JAM_LIST = [
-        'I'    => ['code' => 'I',    'num' => 1,  'label' => 'Jam I',    'mulai' => '07:30', 'selesai' => '08:15'],
-        'II'   => ['code' => 'II',   'num' => 2,  'label' => 'Jam II',   'mulai' => '08:15', 'selesai' => '09:00'],
-        'III'  => ['code' => 'III',  'num' => 3,  'label' => 'Jam III',  'mulai' => '09:15', 'selesai' => '10:00'],
-        'IV'   => ['code' => 'IV',   'num' => 4,  'label' => 'Jam IV',   'mulai' => '10:00', 'selesai' => '10:45'],
-        'V'    => ['code' => 'V',    'num' => 5,  'label' => 'Jam V',    'mulai' => '10:45', 'selesai' => '11:30'],
-        'VI'   => ['code' => 'VI',   'num' => 6,  'label' => 'Jam VI',   'mulai' => '11:30', 'selesai' => '12:15'],
-        'VII'  => ['code' => 'VII',  'num' => 7,  'label' => 'Jam VII',  'mulai' => '12:45', 'selesai' => '13:30'],
-        'VIII' => ['code' => 'VIII', 'num' => 8,  'label' => 'Jam VIII', 'mulai' => '13:30', 'selesai' => '14:15'],
-        'IX'   => ['code' => 'IX',   'num' => 9,  'label' => 'Jam IX',   'mulai' => '14:15', 'selesai' => '15:00'],
-        'X'    => ['code' => 'X',    'num' => 10, 'label' => 'Jam X',    'mulai' => '15:00', 'selesai' => '15:45'],
+        'I'    => ['code' => 'I',    'num' => 1,  'label' => 'Jam I',    'mulai' => '07:15', 'selesai' => '07:55'],
+        'II'   => ['code' => 'II',   'num' => 2,  'label' => 'Jam II',   'mulai' => '07:55', 'selesai' => '08:35'],
+        'III'  => ['code' => 'III',  'num' => 3,  'label' => 'Jam III',  'mulai' => '08:35', 'selesai' => '09:15'],
+        'IV'   => ['code' => 'IV',   'num' => 4,  'label' => 'Jam IV',   'mulai' => '09:15', 'selesai' => '09:55'],
+        'V'    => ['code' => 'V',    'num' => 5,  'label' => 'Jam V',    'mulai' => '09:55', 'selesai' => '10:35'],
+        'VI'   => ['code' => 'VI',   'num' => 6,  'label' => 'Jam VI',   'mulai' => '10:50', 'selesai' => '11:30'],
+        'VII'  => ['code' => 'VII',  'num' => 7,  'label' => 'Jam VII',  'mulai' => '11:30', 'selesai' => '12:10'],
+        'VIII' => ['code' => 'VIII', 'num' => 8,  'label' => 'Jam VIII', 'mulai' => '12:10', 'selesai' => '12:50'],
+        'IX'   => ['code' => 'IX',   'num' => 9,  'label' => 'Jam IX',   'mulai' => '13:05', 'selesai' => '13:45'],
+        'X'    => ['code' => 'X',    'num' => 10, 'label' => 'Jam X',    'mulai' => '13:45', 'selesai' => '14:20'],
     ];
 
     public function __construct(protected GoogleSheetService $gas) {}
