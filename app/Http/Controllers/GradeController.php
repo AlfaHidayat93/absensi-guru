@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Grade;
+use App\Models\Student;
+use App\Models\Subject;
 use App\Services\GoogleSheetService;
 use Illuminate\Http\Request;
 
@@ -20,18 +23,27 @@ class GradeController extends Controller
 
     public function index(Request $request)
     {
-        $response = $this->gas->getInitialData();
-        $data     = $response['data'] ?? [];
+        $user = auth()->user();
 
-        $allSiswa  = $data['siswa']  ?? [];
-        $allGrades = $data['nilai']  ?? [];
-        $config    = $data['config'] ?? [];
+        // Ambil kelas & mapel dari database lokal dengan saringan peranan user
+        $allClasses = Student::select('kelas')
+            ->distinct()
+            ->whereNotNull('kelas')
+            ->pluck('kelas')
+            ->sort()
+            ->values()
+            ->all();
 
-        $classes          = collect($allSiswa)->pluck('Kelas')->filter()->unique()->sort()->values()->all();
-        $semesters        = $config['SEMESTER_LIST'] ?? ['Ganjil', 'Genap'];
+        $classes = $user->getAccessibleClasses($allClasses);
+
+        $allSubjects = Subject::pluck('name')->sort()->values()->all();
+        $subjects    = $user->getAccessibleSubjects($allSubjects);
+
+        $semesters        = ['Ganjil', 'Genap'];
         $mode             = $request->query('mode', 'input');
-        $selectedClass    = $request->query('kelas');
-        $selectedSemester = $request->query('semester', $config['DEFAULT_SEMESTER'] ?? 'Ganjil');
+        $selectedClass    = $request->query('kelas', !empty($classes) ? $classes[0] : null);
+        $selectedSemester = $request->query('semester', 'Ganjil');
+        $selectedSubject  = $request->query('mata_pelajaran', !empty($subjects) ? $subjects[0] : 'Umum');
         $selectedType     = $request->query('jenis', 'Tugas_1');
         $gradeTypes       = self::GRADE_TYPES;
 
@@ -39,49 +51,97 @@ class GradeController extends Controller
         $grades   = [];
 
         if ($selectedClass) {
-            $students = collect($allSiswa)
-                ->filter(fn ($s) => $s['Kelas'] === $selectedClass)
-                ->values()->all();
-
-            $grades = collect($allGrades)
-                ->filter(fn ($g) => $g['Kelas'] === $selectedClass && $g['Semester'] === $selectedSemester)
-                ->keyBy('NIS')
+            $students = Student::where('kelas', $selectedClass)
+                ->orderBy('nama', 'asc')
+                ->get()
+                ->map(fn ($s) => [
+                    'id'    => $s->id,
+                    'NIS'   => $s->nis,
+                    'Nama'  => $s->nama,
+                    'Kelas' => $s->kelas,
+                ])
                 ->all();
+
+            $dbGrades = Grade::where('kelas', $selectedClass)
+                ->where('semester', $selectedSemester)
+                ->where('mata_pelajaran', $selectedSubject)
+                ->get();
+
+            foreach ($dbGrades as $g) {
+                $grades[$g->nis] = [
+                    'NIS'            => $g->nis,
+                    'Kelas'          => $g->kelas,
+                    'Semester'       => $g->semester,
+                    'Mata_Pelajaran' => $g->mata_pelajaran,
+                    'Tugas_1'        => $g->tugas_1,
+                    'Tugas_2'        => $g->tugas_2,
+                    'Tugas_3'        => $g->tugas_3,
+                    'PTS'            => $g->pts,
+                    'PAS'            => $g->pas,
+                    'Praktik'        => $g->praktik,
+                ];
+            }
         }
 
         return view('grades', compact(
-            'classes', 'semesters', 'students', 'grades', 'mode', 'gradeTypes',
-            'selectedClass', 'selectedSemester', 'selectedType'
+            'classes', 'semesters', 'subjects', 'students', 'grades', 'mode', 'gradeTypes',
+            'selectedClass', 'selectedSemester', 'selectedSubject', 'selectedType'
         ));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'kelas'    => 'required|string',
-            'semester' => 'required|string',
-            'jenis'    => 'required|string|in:' . implode(',', array_keys(self::GRADE_TYPES)),
-            'scores'   => 'required|array',
+            'kelas'          => 'required|string',
+            'semester'       => 'required|string',
+            'mata_pelajaran' => 'required|string',
+            'jenis'          => 'required|string|in:' . implode(',', array_keys(self::GRADE_TYPES)),
+            'scores'         => 'required|array',
         ]);
 
-        $payload = [
-            'kelas'    => $request->kelas,
-            'semester' => $request->semester,
-            'type'     => $request->jenis,
-            'grades'   => $request->scores,
-        ];
+        $typeColumn = strtolower($request->jenis);
 
-        $response = $this->gas->saveGrades($payload);
+        foreach ($request->scores as $nis => $score) {
+            if ($score === null || $score === '') {
+                continue;
+            }
+
+            $val = floatval($score);
+
+            Grade::updateOrCreate(
+                [
+                    'nis'            => (string)$nis,
+                    'kelas'          => $request->kelas,
+                    'semester'       => $request->semester,
+                    'mata_pelajaran' => $request->mata_pelajaran,
+                ],
+                [
+                    $typeColumn => $val,
+                ]
+            );
+        }
+
+        // Simpan opsional ke Google Sheets di background
+        try {
+            $payload = [
+                'kelas'    => $request->kelas,
+                'semester' => $request->semester,
+                'type'     => $request->jenis,
+                'grades'   => $request->scores,
+            ];
+            $this->gas->saveGrades($payload);
+        } catch (\Throwable $e) {
+            // Abaikan error Google Sheets
+        }
 
         $redirect = redirect()->route('grades.index', [
-            'mode'     => 'input',
-            'kelas'    => $request->kelas,
-            'semester' => $request->semester,
-            'jenis'    => $request->jenis,
+            'mode'           => 'input',
+            'kelas'          => $request->kelas,
+            'semester'       => $request->semester,
+            'mata_pelajaran' => $request->mata_pelajaran,
+            'jenis'          => $request->jenis,
         ]);
 
-        return $response['success']
-            ? $redirect->with('success', $response['message'])
-            : $redirect->with('error',   $response['message']);
+        return $redirect->with('success', 'Nilai siswa berhasil disimpan ke database!');
     }
 }

@@ -48,6 +48,14 @@
           @endforeach
         </select>
       </div>
+      <div>
+        <label class="form-label">Mata Pelajaran</label>
+        <select name="mata_pelajaran" onchange="this.form.submit()" class="form-input py-2">
+          @foreach($subjects as $sbj)
+            <option value="{{ $sbj }}" {{ ($selectedSubject ?? '') == $sbj ? 'selected' : '' }}>{{ $sbj }}</option>
+          @endforeach
+        </select>
+      </div>
       @if($mode === 'input')
         <div>
           <label class="form-label">Jenis Penilaian</label>
@@ -73,9 +81,10 @@
   @if($mode === 'input')
   <form action="{{ route('grades.store') }}" method="POST">
     @csrf
-    <input type="hidden" name="kelas"    value="{{ $selectedClass }}">
-    <input type="hidden" name="semester" value="{{ $selectedSemester }}">
-    <input type="hidden" name="jenis"    value="{{ $selectedType }}">
+    <input type="hidden" name="kelas"          value="{{ $selectedClass }}">
+    <input type="hidden" name="semester"       value="{{ $selectedSemester }}">
+    <input type="hidden" name="mata_pelajaran" value="{{ $selectedSubject }}">
+    <input type="hidden" name="jenis"          value="{{ $selectedType }}">
 
     <div class="card overflow-hidden">
       <div class="card-header">

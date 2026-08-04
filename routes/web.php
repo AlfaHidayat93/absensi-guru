@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
             // Manajemen Akun Lokal (Users)
             Route::prefix('users')->name('users.')->group(function () {
                 Route::get('/', [App\Http\Controllers\UserManagementController::class, 'index'])->name('index');
+                Route::put('/{id}', [App\Http\Controllers\UserManagementController::class, 'update'])->name('update');
                 Route::post('/{id}/reset-password', [App\Http\Controllers\UserManagementController::class, 'resetPassword'])->name('reset-password');
                 Route::delete('/{id}', [App\Http\Controllers\UserManagementController::class, 'destroy'])->name('destroy');
             });

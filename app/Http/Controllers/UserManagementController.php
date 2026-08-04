@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Student;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,9 +12,36 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        // Tampilkan semua user kecuali super admin sendiri
         $users = User::where('id', '!=', auth()->id())->get();
-        return view('admin.users', compact('users'));
+        $allClasses = Student::select('kelas')->distinct()->whereNotNull('kelas')->pluck('kelas')->sort()->values()->all();
+        $allSubjects = Subject::pluck('name')->sort()->values()->all();
+
+        return view('admin.users', compact('users', 'allClasses', 'allSubjects'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->role === 'super_admin' && $user->id === 1) {
+            return back()->with('error', 'Tidak dapat mengubah data Super Admin utama.');
+        }
+
+        $validated = $request->validate([
+            'role'              => 'required|in:super_admin,wali_kelas,guru',
+            'homeroom_class'    => 'nullable|string|max:20',
+            'assigned_classes'  => 'nullable|array',
+            'assigned_subjects' => 'nullable|array',
+        ]);
+
+        $user->update([
+            'role'              => $validated['role'],
+            'homeroom_class'    => $validated['role'] === 'wali_kelas' ? ($validated['homeroom_class'] ?? null) : null,
+            'assigned_classes'  => $validated['assigned_classes'] ?? [],
+            'assigned_subjects' => $validated['assigned_subjects'] ?? [],
+        ]);
+
+        return back()->with('success', 'Hak akses dan peranan ' . $user->name . ' berhasil diperbarui.');
     }
 
     public function resetPassword(Request $request, $id)
@@ -22,8 +51,7 @@ class UserManagementController extends Controller
         ]);
 
         $user = User::findOrFail($id);
-        
-        // Proteksi: jangan sampai menghapus/mereset admin utama secara tidak sengaja
+
         if ($user->role === 'super_admin' && $user->id === 1) {
             return back()->with('error', 'Tidak dapat mereset password Super Admin utama.');
         }
