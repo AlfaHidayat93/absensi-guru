@@ -401,20 +401,30 @@
                   'Alpa'  => 'text-rose-600',
                 ];
 
-                $stat = $rekapSiswa[$nis] ?? ['hadir'=>0,'sakit'=>0,'izin'=>0,'alpa'=>0,'total'=>0,'persentase'=>0];
+                $stat = $rekapSiswa[$nis] ?? ['hadir'=>0,'sakit'=>0,'izin'=>0,'alpa'=>0,'total'=>0,'persentase'=>0,'bintang'=>0,'peringatan'=>0];
               @endphp
               <tr class="hover:bg-slate-50 transition-colors">
                 <td class="text-slate-400 text-xs text-center font-medium">{{ $idx + 1 }}</td>
                 <td class="font-mono text-xs text-slate-500">{{ $nis }}</td>
                 <td>
                   <div class="font-bold text-slate-900 text-xs sm:text-sm">{{ $student['Nama Siswa'] ?? $student['Nama'] ?? '-' }}</div>
-                  <div class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5 no-print">
+                  <div class="text-[11px] text-slate-500 flex flex-wrap items-center gap-1.5 mt-0.5 no-print">
                     <span class="px-1.5 py-0.2 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono">
                       H:{{ $stat['hadir'] }} | S:{{ $stat['sakit'] }} | I:{{ $stat['izin'] }} | A:{{ $stat['alpa'] }}
                     </span>
                     <span class="font-bold {{ $stat['persentase'] >= 85 ? 'text-emerald-600' : ($stat['persentase'] >= 75 ? 'text-amber-600' : 'text-rose-600') }}">
                       ({{ $stat['persentase'] }}%)
                     </span>
+                    @if(($stat['bintang'] ?? 0) > 0)
+                      <span class="px-1.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 rounded-md font-extrabold text-[10px]">
+                        ⭐{{ $stat['bintang'] }}x
+                      </span>
+                    @endif
+                    @if(($stat['peringatan'] ?? 0) > 0)
+                      <span class="px-1.5 py-0.5 bg-rose-100 border border-rose-300 text-rose-900 rounded-md font-extrabold text-[10px]">
+                        ⚠️{{ $stat['peringatan'] }}x
+                      </span>
+                    @endif
                   </div>
                 </td>
                 <td>
