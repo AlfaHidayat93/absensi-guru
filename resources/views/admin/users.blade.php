@@ -10,8 +10,16 @@
       <h3 class="font-bold text-slate-800 text-lg">Daftar Akun & Peranan Pengguna</h3>
       <p class="text-sm text-slate-500 mt-1">Kelola peran (Super Admin, Wali Kelas, Guru Mapel) dan tentukan hak akses kelas/mata pelajaran.</p>
     </div>
-    <div class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm">
-      Total: {{ $users->count() }} Akun
+    <div class="flex items-center gap-3">
+      <form action="{{ route('admin.deploy-update') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin memperbarui struktur database hosting dan akun demo secara otomatis?');">
+        @csrf
+        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2">
+          <i class="fa-solid fa-database"></i> Sync / Update Database Hosting
+        </button>
+      </form>
+      <div class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm">
+        Total: {{ $users->count() }} Akun
+      </div>
     </div>
   </div>
 

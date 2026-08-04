@@ -56,6 +56,8 @@ Route::middleware('auth')->group(function () {
         // Data Guru, Verifikasi & Manajemen Akun Lokal
         Route::prefix('admin')->name('admin.')->group(function () {
             
+            Route::post('/deploy-update', [App\Http\Controllers\UserManagementController::class, 'runUpdate'])->name('deploy-update');
+
             // Manajemen Akun Lokal (Users)
             Route::prefix('users')->name('users.')->group(function () {
                 Route::get('/', [App\Http\Controllers\UserManagementController::class, 'index'])->name('index');

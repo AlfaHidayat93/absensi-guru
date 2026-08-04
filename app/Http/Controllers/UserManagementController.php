@@ -74,4 +74,17 @@ class UserManagementController extends Controller
 
         return back()->with('success', 'Akun ' . $user->name . ' berhasil dihapus dari sistem lokal.');
     }
+
+    public function runUpdate()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+
+            return back()->with('success', 'Database hosting, struktur tabel, dan seeder akun demo berhasil diperbarui!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memperbarui database: ' . $e->getMessage());
+        }
+    }
 }
