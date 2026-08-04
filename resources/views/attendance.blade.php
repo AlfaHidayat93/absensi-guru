@@ -476,17 +476,31 @@
                 </td>
                 <td class="no-print text-center">
                   {{-- Keaktifan (Aktif / Biasa / Pasif) --}}
-                  <div class="inline-flex rounded-xl p-0.5 bg-slate-100 border border-slate-200 text-xs select-none">
-                    <label class="cursor-pointer px-2 py-1.5 rounded-lg transition-all flex items-center gap-1 {{ $currentKeaktifan === 'aktif' ? 'bg-amber-400 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                      <input type="radio" name="keaktifan[{{ $nis }}]" value="aktif" {{ $currentKeaktifan === 'aktif' ? 'checked' : '' }} class="hidden">
+                  @php
+                    $isAktif = ($currentKeaktifan === 'aktif' || $currentKeaktifan === 'bintang');
+                    $isPasif = ($currentKeaktifan === 'tidak_aktif' || $currentKeaktifan === 'peringatan');
+                    $isBiasa = !$isAktif && !$isPasif;
+                  @endphp
+                  <div class="keaktifan-group inline-flex rounded-xl p-0.5 bg-slate-200/80 border border-slate-300 text-xs select-none shadow-inner">
+                    <label class="keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-medium {{ $isAktif ? 'bg-amber-400 text-white font-extrabold shadow-sm' : 'text-slate-600 hover:text-slate-900' }}"
+                           data-active="{{ $isAktif ? 'true' : 'false' }}"
+                           data-value="aktif">
+                      <input type="radio" name="keaktifan[{{ $nis }}]" value="aktif" {{ $isAktif ? 'checked' : '' }}
+                             onchange="selectKeaktifan(this)" class="hidden">
                       <span>⭐ Aktif</span>
                     </label>
-                    <label class="cursor-pointer px-2 py-1.5 rounded-lg transition-all flex items-center gap-1 {{ $currentKeaktifan === 'normal' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                      <input type="radio" name="keaktifan[{{ $nis }}]" value="normal" {{ $currentKeaktifan === 'normal' ? 'checked' : '' }} class="hidden">
+                    <label class="keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-medium {{ $isBiasa ? 'bg-white text-slate-800 font-extrabold shadow-sm' : 'text-slate-600 hover:text-slate-900' }}"
+                           data-active="{{ $isBiasa ? 'true' : 'false' }}"
+                           data-value="normal">
+                      <input type="radio" name="keaktifan[{{ $nis }}]" value="normal" {{ $isBiasa ? 'checked' : '' }}
+                             onchange="selectKeaktifan(this)" class="hidden">
                       <span>Biasa</span>
                     </label>
-                    <label class="cursor-pointer px-2 py-1.5 rounded-lg transition-all flex items-center gap-1 {{ $currentKeaktifan === 'tidak_aktif' ? 'bg-rose-500 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                      <input type="radio" name="keaktifan[{{ $nis }}]" value="tidak_aktif" {{ $currentKeaktifan === 'tidak_aktif' ? 'checked' : '' }} class="hidden">
+                    <label class="keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-medium {{ $isPasif ? 'bg-rose-500 text-white font-extrabold shadow-sm' : 'text-slate-600 hover:text-slate-900' }}"
+                           data-active="{{ $isPasif ? 'true' : 'false' }}"
+                           data-value="tidak_aktif">
+                      <input type="radio" name="keaktifan[{{ $nis }}]" value="tidak_aktif" {{ $isPasif ? 'checked' : '' }}
+                             onchange="selectKeaktifan(this)" class="hidden">
                       <span>⚠️ Pasif</span>
                     </label>
                   </div>
@@ -529,6 +543,31 @@
 @endif
 
 <script>
+  function selectKeaktifan(radio) {
+    const group = radio.closest('.keaktifan-group');
+    if (!group) return;
+
+    const labels = group.querySelectorAll('.keaktifan-btn');
+    labels.forEach(lbl => {
+      const inp = lbl.querySelector('input');
+      const val = lbl.dataset.value;
+
+      if (inp && inp.checked) {
+        lbl.dataset.active = "true";
+        if (val === 'aktif') {
+          lbl.className = "keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-extrabold bg-amber-400 text-white shadow-sm ring-2 ring-amber-300";
+        } else if (val === 'tidak_aktif') {
+          lbl.className = "keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-extrabold bg-rose-500 text-white shadow-sm ring-2 ring-rose-300";
+        } else {
+          lbl.className = "keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-extrabold bg-white text-slate-800 shadow-sm ring-2 ring-slate-200";
+        }
+      } else {
+        lbl.dataset.active = "false";
+        lbl.className = "keaktifan-btn cursor-pointer px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 font-medium text-slate-600 hover:text-slate-900";
+      }
+    });
+  }
+
   function updateJamFromChecklist() {
     const checkboxes = Array.from(document.querySelectorAll('.jamCheckbox:checked'));
     const summarySpan = document.getElementById('selectedJamSummary');
