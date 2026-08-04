@@ -13,8 +13,12 @@ class UserManagementController extends Controller
     public function index()
     {
         $users = User::where('id', '!=', auth()->id())->get();
-        $allClasses = Student::select('kelas')->distinct()->whereNotNull('kelas')->pluck('kelas')->sort()->values()->all();
-        $allSubjects = Subject::pluck('name')->sort()->values()->all();
+        $allClasses = \Illuminate\Support\Facades\Schema::hasTable('students')
+            ? Student::select('kelas')->distinct()->whereNotNull('kelas')->pluck('kelas')->sort()->values()->all()
+            : [];
+        $allSubjects = \Illuminate\Support\Facades\Schema::hasTable('subjects')
+            ? Subject::pluck('name')->sort()->values()->all()
+            : [];
 
         return view('admin.users', compact('users', 'allClasses', 'allSubjects'));
     }
