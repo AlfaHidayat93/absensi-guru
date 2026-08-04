@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('nilai')->name('grades.')->group(function () {
         Route::get('/',     [GradeController::class, 'index'])->name('index');
         Route::post('/',    [GradeController::class, 'store'])->name('store');
+        Route::post('/tasks', [GradeController::class, 'updateTasks'])->name('update_tasks');
     });
 
     // ── Super Admin Only ──────────────────────────────────────────────

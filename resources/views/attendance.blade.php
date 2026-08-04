@@ -444,8 +444,8 @@
                       ({{ $stat['persentase'] }}%)
                     </span>
                     @if(($stat['bintang'] ?? 0) > 0)
-                      <span class="px-1.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 rounded-md font-extrabold text-[10px]" title="1 Bintang = +5 Poin Sikap">
-                        ⭐{{ $stat['bintang'] }}x (+{{ $stat['poin_sikap'] ?? (($stat['bintang'] ?? 0) * 5) }} Poin Sikap)
+                      <span class="px-1.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 rounded-md font-extrabold text-[10px]" title="Keaktifan Siswa">
+                        ⭐{{ $stat['bintang'] }}x
                       </span>
                     @endif
                     @if(($stat['peringatan'] ?? 0) > 0)

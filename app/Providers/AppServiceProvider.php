@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
                 if (!Schema::hasTable('subjects') || 
                     !Schema::hasTable('attendances') || 
                     !Schema::hasTable('grades') || 
+                    !Schema::hasTable('grade_settings') || 
+                    !Schema::hasColumn('grades', 'poin_sikap') || 
                     !Schema::hasColumn('users', 'homeroom_class')) {
                     
                     Artisan::call('migrate', ['--force' => true]);
