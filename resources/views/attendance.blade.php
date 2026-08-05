@@ -260,7 +260,10 @@
   $canDelete = false;
   if ($existingRecord) {
       $recordGuruId = $existingRecord['guru_id'] ?? null;
-      $canEdit = $user->isSuperAdmin() || (int)$recordGuruId === (int)$user->id;
+      $recordGuruName = $existingRecord['Guru'] ?? null;
+      $canEdit = $user->isSuperAdmin() 
+          || (int)$recordGuruId === (int)$user->id
+          || ($recordGuruId === null && strtolower(trim($recordGuruName)) === strtolower(trim($user->name)));
       $canDelete = $canEdit;
   }
 @endphp

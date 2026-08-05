@@ -282,7 +282,9 @@ class AttendanceController extends Controller
         $existing = Attendance::where('id_absen', $idAbsen)->first();
         if ($existing) {
             $user = auth()->user();
-            $canEdit = $user->isSuperAdmin() || (int)$existing->guru_id === (int)$user->id;
+            $canEdit = $user->isSuperAdmin() 
+                || (int)$existing->guru_id === (int)$user->id
+                || ($existing->guru_id === null && strtolower(trim($existing->guru)) === strtolower(trim($user->name)));
             if (!$canEdit) {
                 return back()->with('error', 'Hanya Guru Pengampu (yang mensubmit absensi tersebut) dan Super Admin yang dapat mengedit data absensi.');
             }
@@ -348,7 +350,9 @@ class AttendanceController extends Controller
         $record = Attendance::findOrFail($id);
 
         // Hanya guru yang mengisi (Guru Pengampu) dan super admin yang bisa hapus
-        $canDelete = $user->isSuperAdmin() || (int)$record->guru_id === (int)$user->id;
+        $canDelete = $user->isSuperAdmin() 
+            || (int)$record->guru_id === (int)$user->id
+            || ($record->guru_id === null && strtolower(trim($record->guru)) === strtolower(trim($user->name)));
 
         if (!$canDelete) {
             return back()->with('error', 'Hanya Guru Pengampu (yang mensubmit absensi) dan Super Admin yang dapat menghapus data absensi ini.');
