@@ -59,13 +59,57 @@ class AttendanceController extends Controller
         $selectedSemester   = $request->query('semester', 'Ganjil');
         $selectedDate       = $request->query('tanggal', date('Y-m-d'));
         $selectedSession    = $request->query('session');
-        $selectedGuru       = $request->query('guru', $user->name);
-        $selectedSubject    = $request->query('mata_pelajaran', !empty($subjects) ? $subjects[0] : '');
-        $selectedJamMulai   = $request->query('jam_mulai', '07:30');
-        $selectedJamSelesai = $request->query('jam_selesai', '09:00');
 
         if ($selectedSession === 'new') {
             $selectedSession = null;
+        }
+
+        // Cari record berdasarkan ID Sesi jika ada di request
+        $sessionRecord = null;
+        if ($selectedSession) {
+            $sessionRecord = Attendance::where('id_absen', $selectedSession)
+                ->orWhere('id', $selectedSession)
+                ->first();
+            if ($sessionRecord) {
+                $selectedClass    = $sessionRecord->kelas;
+                $selectedSemester = $sessionRecord->semester;
+                $selectedDate     = $sessionRecord->tanggal ? $sessionRecord->tanggal->format('Y-m-d') : $selectedDate;
+            }
+        }
+
+        // Cek izin akses ke kelas yang dipilih
+        if ($selectedClass && !$user->canAccessClass($selectedClass) && !$user->isSuperAdmin()) {
+            // Jika user mencoba mengakses kelas di luar wewenangnya, kembalikan ke kelas teratas miliknya
+            $selectedClass = !empty($classes) ? $classes[0] : null;
+        }
+
+        // Ambil data pertemuan sebelumnya untuk autopopulate sesi baru & refleksi
+        $previousRecord = null;
+        if ($selectedClass) {
+            $previousRecord = Attendance::where('kelas', $selectedClass)
+                ->where('semester', $selectedSemester)
+                ->where('tanggal', '<', $selectedDate)
+                ->orderBy('tanggal', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+        }
+
+        // Inisialisasi parameter opsional dengan fallback ke pertemuan sebelumnya atau default
+        $selectedGuru       = $request->query('guru');
+        $selectedSubject    = $request->query('mata_pelajaran');
+        $selectedJamMulai   = $request->query('jam_mulai');
+        $selectedJamSelesai = $request->query('jam_selesai');
+
+        if ($sessionRecord) {
+            $selectedSubject    = $sessionRecord->mata_pelajaran;
+            $selectedGuru       = $sessionRecord->guru;
+            $selectedJamMulai   = $sessionRecord->jam_mulai ? substr($sessionRecord->jam_mulai, 0, 5) : '07:30';
+            $selectedJamSelesai = $sessionRecord->jam_selesai ? substr($sessionRecord->jam_selesai, 0, 5) : '09:00';
+        } else {
+            $selectedSubject    = $selectedSubject ?? ($previousRecord ? $previousRecord->mata_pelajaran : (!empty($subjects) ? $subjects[0] : ''));
+            $selectedGuru       = $selectedGuru ?? ($previousRecord ? $previousRecord->guru : $user->name);
+            $selectedJamMulai   = $selectedJamMulai ?? ($previousRecord ? substr($previousRecord->jam_mulai, 0, 5) : '07:30');
+            $selectedJamSelesai = $selectedJamSelesai ?? ($previousRecord ? substr($previousRecord->jam_selesai, 0, 5) : '09:00');
         }
 
         $students        = [];
@@ -75,12 +119,6 @@ class AttendanceController extends Controller
         $rekapSiswa      = [];
         $totalPertemuan  = 0;
         $classAbsensiList = collect();
-
-        // Cek izin akses ke kelas yang dipilih
-        if ($selectedClass && !$user->canAccessClass($selectedClass) && !$user->isSuperAdmin()) {
-            // Jika user mencoba mengakses kelas di luar wewenangnya, kembalikan ke kelas teratas miliknya
-            $selectedClass = !empty($classes) ? $classes[0] : null;
-        }
 
         if ($selectedClass) {
             // Ambil daftar siswa untuk kelas terpilih
@@ -108,8 +146,8 @@ class AttendanceController extends Controller
                     'Kelas'               => $a->kelas,
                     'Semester'            => $a->semester,
                     'Tanggal'             => $a->tanggal->format('Y-m-d'),
-                    'Jam_Mulai'           => $a->jam_mulai,
-                    'Jam_Selesai'         => $a->jam_selesai,
+                    'Jam_Mulai'           => $a->jam_mulai ? substr($a->jam_mulai, 0, 5) : '',
+                    'Jam_Selesai'         => $a->jam_selesai ? substr($a->jam_selesai, 0, 5) : '',
                     'Mata_Pelajaran'      => $a->mata_pelajaran,
                     'Guru'                => $a->guru,
                     'guru_id'             => $a->guru_id,
@@ -134,10 +172,20 @@ class AttendanceController extends Controller
                 $rawDetail = $existingRecord['Detail_Kehadiran'];
                 $detailKehadiran = is_array($rawDetail) ? $rawDetail : (json_decode($rawDetail, true) ?? []);
 
-                if (empty($selectedSubject) && !empty($existingRecord['Mata_Pelajaran'])) {
-                    $selectedSubject = $existingRecord['Mata_Pelajaran'];
-                }
+                // Override parameters dengan data dari record yang ditemukan
+                $selectedSubject    = $existingRecord['Mata_Pelajaran'] ?? $selectedSubject;
+                $selectedGuru       = $existingRecord['Guru'] ?? $selectedGuru;
+                $selectedJamMulai   = $existingRecord['Jam_Mulai'] ?? $selectedJamMulai;
+                $selectedJamSelesai = $existingRecord['Jam_Selesai'] ?? $selectedJamSelesai;
             }
+
+            // Ambil seluruh sesi absensi kelas ini untuk dropdown (diurutkan terbaru)
+            $classAbsensiList = Attendance::where('kelas', $selectedClass)
+                ->where('semester', $selectedSemester)
+                ->orderBy('tanggal', 'desc')
+                ->orderBy('jam_mulai', 'desc')
+                ->orderBy('id', 'desc')
+                ->get();
 
             // Hitung Rekapitulasi Kehadiran & Keaktifan Kumulatif dari DB Lokal
             $queryAbsensi = Attendance::where('kelas', $selectedClass)
@@ -147,8 +195,8 @@ class AttendanceController extends Controller
                 $queryAbsensi->where('mata_pelajaran', $selectedSubject);
             }
 
-            $classAbsensiList = $queryAbsensi->get();
-            $totalPertemuan   = $classAbsensiList->count();
+            $rekapAbsensiList = $queryAbsensi->get();
+            $totalPertemuan   = $rekapAbsensiList->count();
 
             foreach ($students as $st) {
                 $nis = (string)$st['NIS'];
@@ -165,7 +213,7 @@ class AttendanceController extends Controller
                 ];
             }
 
-            foreach ($classAbsensiList as $abs) {
+            foreach ($rekapAbsensiList as $abs) {
                 $rawDetail = $abs->detail_kehadiran ?? [];
                 $tgl       = $abs->tanggal ? $abs->tanggal->format('d/m/Y') : '';
                 $mapel     = $abs->mata_pelajaran ?? '';
@@ -224,15 +272,6 @@ class AttendanceController extends Controller
                 $stat['poin_sikap'] = $stat['bintang'] * 5;
             }
             unset($stat);
-
-            // Ambil catatan & materi pertemuan sebelumnya untuk refleksi guru
-            $previousRecord = Attendance::where('kelas', $selectedClass)
-                ->where('semester', $selectedSemester)
-                ->when(!empty($selectedSubject), fn($q) => $q->where('mata_pelajaran', $selectedSubject))
-                ->where('tanggal', '<', $selectedDate)
-                ->orderBy('tanggal', 'desc')
-                ->orderBy('id', 'desc')
-                ->first();
         } else {
             $previousRecord = null;
         }
