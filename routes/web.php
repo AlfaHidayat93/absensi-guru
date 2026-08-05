@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('absensi')->name('attendance.')->group(function () {
         Route::get('/',     [AttendanceController::class, 'index'])->name('index');
         Route::post('/',    [AttendanceController::class, 'store'])->name('store');
+        Route::delete('/{id}', [AttendanceController::class, 'destroy'])->name('destroy');
     });
 
     // ── Penilaian & Leger ──────────────────────────────────────────────

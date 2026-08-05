@@ -330,4 +330,30 @@ class AttendanceController extends Controller
         return redirect()->route('attendance.index', $redirectParams)
             ->with('success', 'Data presensi berhasil disimpan ke database!');
     }
+
+    public function destroy(Request $request, $id)
+    {
+        $user = auth()->user();
+
+        $record = Attendance::findOrFail($id);
+
+        // Hanya guru yang mengisi, wali kelas dari kelas tersebut, atau super admin yang bisa hapus
+        $canDelete = $user->isSuperAdmin()
+            || (int)$record->guru_id === (int)$user->id
+            || ($user->isWaliKelas() && $user->canAccessClass($record->kelas))
+            || $user->canAccessClass($record->kelas);
+
+        if (!$canDelete) {
+            return back()->with('error', 'Anda tidak memiliki izin untuk menghapus data absensi ini.');
+        }
+
+        $record->delete();
+
+        return redirect()->route('attendance.index', [
+            'kelas'    => $request->query('kelas', $record->kelas),
+            'semester' => $request->query('semester', $record->semester),
+            'tanggal'  => $request->query('tanggal', $record->tanggal?->format('Y-m-d')),
+        ])->with('success', 'Data presensi sesi ' . ($record->mata_pelajaran ?? '') . ' (' . ($record->jam_mulai ?? '') . ' - ' . ($record->jam_selesai ?? '') . ') berhasil dihapus.');
+    }
 }
+

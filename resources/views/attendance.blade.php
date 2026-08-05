@@ -523,7 +523,25 @@
       </div>
 
       @if(!empty($students))
-        <div class="px-6 py-4 border-t border-slate-100 flex justify-end no-print bg-slate-50/50">
+        @php
+          $user = auth()->user();
+          $canDelete = false;
+          if ($existingRecord) {
+              $recordGuruId = $existingRecord['guru_id'] ?? null;
+              $recordKelas = $existingRecord['kelas'] ?? $selectedClass;
+              
+              $canDelete = $user->isSuperAdmin()
+                  || (int)$recordGuruId === (int)$user->id
+                  || ($user->isWaliKelas() && $user->canAccessClass($recordKelas))
+                  || $user->canAccessClass($recordKelas);
+          }
+        @endphp
+        <div class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3 no-print bg-slate-50/50">
+          @if($existingRecord && $canDelete)
+            <button type="button" onclick="confirmDeleteAttendance()" class="btn bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 w-full sm:w-auto py-3 px-6 text-sm flex items-center justify-center gap-2">
+              <i class="fa-solid fa-trash-can"></i> Hapus Sesi Absensi
+            </button>
+          @endif
           <button type="submit" class="btn btn-primary w-full sm:w-auto py-3 px-6 text-sm">
             <i class="fa-solid fa-floppy-disk"></i>
             {{ $existingRecord ? 'Perbarui Absensi' : 'Simpan Absensi' }}
@@ -532,6 +550,23 @@
       @endif
     </div>
   </form>
+
+  @if($existingRecord && $canDelete)
+    <form id="deleteAttendanceForm" action="{{ route('attendance.destroy', $existingRecord['ID_Absen'] ?? $existingRecord['id']) }}" method="POST" class="hidden">
+      @csrf
+      @method('DELETE')
+      <input type="hidden" name="kelas" value="{{ $selectedClass }}">
+      <input type="hidden" name="semester" value="{{ $selectedSemester }}">
+      <input type="hidden" name="tanggal" value="{{ $selectedDate }}">
+    </form>
+    <script>
+      function confirmDeleteAttendance() {
+        if (confirm('Apakah Anda yakin ingin menghapus data absensi sesi ini? Semua catatan keaktifan dan kehadiran di sesi ini akan dihapus secara permanen.')) {
+          document.getElementById('deleteAttendanceForm').submit();
+        }
+      }
+    </script>
+  @endif
 </div>
 
 @else
