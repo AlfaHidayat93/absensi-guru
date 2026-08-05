@@ -254,6 +254,28 @@
 </div>
 
 {{-- ── FORM ABSENSI ─────────────────────────────────────────────────────── --}}
+@php
+  $user = auth()->user();
+  $canEdit = true;
+  $canDelete = false;
+  if ($existingRecord) {
+      $recordGuruId = $existingRecord['guru_id'] ?? null;
+      $canEdit = $user->isSuperAdmin() || (int)$recordGuruId === (int)$user->id;
+      $canDelete = $canEdit;
+  }
+@endphp
+
+@if($existingRecord && !$canEdit)
+  <div class="card no-print mb-6 border border-amber-200 bg-amber-50/50 shadow-sm">
+    <div class="card-body p-4 text-xs text-amber-900 flex items-center gap-3">
+      <i class="fa-solid fa-triangle-exclamation text-amber-500 text-base"></i>
+      <div>
+        <strong>Mode Lihat Saja (Read-Only)</strong>: Anda tidak dapat mengedit atau menghapus absensi sesi ini. Hanya <strong>Guru Pengampu</strong> yang mensubmit absensi ini dan <strong>Super Admin</strong> yang diperbolehkan mengubah atau menghapusnya.
+      </div>
+    </div>
+  </div>
+@endif
+
 <div class="session-form-section">
   <form action="{{ route('attendance.store') }}" method="POST">
     @csrf
@@ -523,29 +545,22 @@
       </div>
 
       @if(!empty($students))
-        @php
-          $user = auth()->user();
-          $canDelete = false;
-          if ($existingRecord) {
-              $recordGuruId = $existingRecord['guru_id'] ?? null;
-              $recordKelas = $existingRecord['kelas'] ?? $selectedClass;
-              
-              $canDelete = $user->isSuperAdmin()
-                  || (int)$recordGuruId === (int)$user->id
-                  || ($user->isWaliKelas() && $user->canAccessClass($recordKelas))
-                  || $user->canAccessClass($recordKelas);
-          }
-        @endphp
         <div class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3 no-print bg-slate-50/50">
           @if($existingRecord && $canDelete)
             <button type="button" onclick="confirmDeleteAttendance()" class="btn bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 w-full sm:w-auto py-3 px-6 text-sm flex items-center justify-center gap-2">
               <i class="fa-solid fa-trash-can"></i> Hapus Sesi Absensi
             </button>
           @endif
-          <button type="submit" class="btn btn-primary w-full sm:w-auto py-3 px-6 text-sm">
-            <i class="fa-solid fa-floppy-disk"></i>
-            {{ $existingRecord ? 'Perbarui Absensi' : 'Simpan Absensi' }}
-          </button>
+          @if($canEdit)
+            <button type="submit" class="btn btn-primary w-full sm:w-auto py-3 px-6 text-sm">
+              <i class="fa-solid fa-floppy-disk"></i>
+              {{ $existingRecord ? 'Perbarui Absensi' : 'Simpan Absensi' }}
+            </button>
+          @else
+            <button type="button" disabled class="btn btn-primary opacity-50 cursor-not-allowed w-full sm:w-auto py-3 px-6 text-sm flex items-center justify-center gap-2">
+              <i class="fa-solid fa-lock"></i> Terkunci (Read-Only)
+            </button>
+          @endif
         </div>
       @endif
     </div>
@@ -675,6 +690,17 @@
       updateJamFromChecklist();
     }
   });
+
+  @if(!$canEdit)
+    document.addEventListener('DOMContentLoaded', () => {
+      const fields = document.querySelectorAll('.session-form-section input, .session-form-section select, .session-form-section textarea');
+      fields.forEach(el => {
+        if (el.type !== 'button' && el.type !== 'submit') {
+          el.disabled = true;
+        }
+      });
+    });
+  @endif
 </script>
 
 @endsection

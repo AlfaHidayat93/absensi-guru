@@ -111,6 +111,7 @@ class AttendanceController extends Controller
                     'Jam_Selesai'         => $a->jam_selesai,
                     'Mata_Pelajaran'      => $a->mata_pelajaran,
                     'Guru'                => $a->guru,
+                    'guru_id'             => $a->guru_id,
                     'Materi_Pembelajaran' => $a->materi_pembelajaran,
                     'Catatan_Kelas'       => $a->catatan_kelas,
                     'Detail_Kehadiran'    => is_array($a->detail_kehadiran) ? json_encode($a->detail_kehadiran) : $a->detail_kehadiran,
@@ -278,6 +279,15 @@ class AttendanceController extends Controller
 
         $idAbsen = $request->id_absen ?? ('ABS-' . date('Ymd-His', strtotime($request->tanggal . ' ' . $request->jam_mulai)));
 
+        $existing = Attendance::where('id_absen', $idAbsen)->first();
+        if ($existing) {
+            $user = auth()->user();
+            $canEdit = $user->isSuperAdmin() || (int)$existing->guru_id === (int)$user->id;
+            if (!$canEdit) {
+                return back()->with('error', 'Hanya Guru Pengampu (yang mensubmit absensi tersebut) dan Super Admin yang dapat mengedit data absensi.');
+            }
+        }
+
         // Simpan ke Database Lokal 100% Instant
         Attendance::updateOrCreate(
             ['id_absen' => $idAbsen],
@@ -337,14 +347,11 @@ class AttendanceController extends Controller
 
         $record = Attendance::findOrFail($id);
 
-        // Hanya guru yang mengisi, wali kelas dari kelas tersebut, atau super admin yang bisa hapus
-        $canDelete = $user->isSuperAdmin()
-            || (int)$record->guru_id === (int)$user->id
-            || ($user->isWaliKelas() && $user->canAccessClass($record->kelas))
-            || $user->canAccessClass($record->kelas);
+        // Hanya guru yang mengisi (Guru Pengampu) dan super admin yang bisa hapus
+        $canDelete = $user->isSuperAdmin() || (int)$record->guru_id === (int)$user->id;
 
         if (!$canDelete) {
-            return back()->with('error', 'Anda tidak memiliki izin untuk menghapus data absensi ini.');
+            return back()->with('error', 'Hanya Guru Pengampu (yang mensubmit absensi) dan Super Admin yang dapat menghapus data absensi ini.');
         }
 
         $record->delete();
