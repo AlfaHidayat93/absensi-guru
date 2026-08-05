@@ -137,6 +137,178 @@
   </div>
 </div>
 
+{{-- ── DASHBOARD KHUSUS WALI KELAS ────────────────────────────────────────── --}}
+@if(isset($waliKelasRekap) && $waliKelasRekap)
+@php
+  $rekap = $waliKelasRekap;
+@endphp
+
+<div class="mt-6 space-y-6">
+
+  {{-- Header Wali Kelas --}}
+  <div class="card bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 text-white border-0 shadow-lg">
+    <div class="card-body flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-white/20 rounded-2xl p-3">
+          <i class="fa-solid fa-chalkboard-teacher text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-indigo-200 uppercase tracking-widest">Dashboard Wali Kelas</p>
+          <h2 class="text-lg font-extrabold">Kelas {{ $rekap['kelas'] }}</h2>
+          <p class="text-xs text-indigo-200 mt-0.5">{{ count($rekap['siswa']) }} Siswa Terdaftar &bull; Rekapitulasi Kehadiran, Keaktifan & Nilai per Mata Pelajaran</p>
+        </div>
+      </div>
+      <a href="{{ route('attendance.index', ['kelas' => $rekap['kelas']]) }}"
+         class="shrink-0 px-4 py-2.5 bg-white/20 hover:bg-white/30 border border-white/30 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2">
+        <i class="fa-solid fa-calendar-check"></i> Buka Lembar Presensi
+      </a>
+    </div>
+  </div>
+
+  {{-- Rekap Kehadiran Keseluruhan Per Siswa --}}
+  <div class="card overflow-hidden">
+    <div class="card-header">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <i class="fa-solid fa-clipboard-user text-emerald-600"></i> Rekapitulasi Kehadiran Siswa (Semua Mapel)
+      </h3>
+    </div>
+    <div class="overflow-x-auto -mx-2 sm:mx-0">
+      <table class="data-table min-w-[700px]">
+        <thead>
+          <tr>
+            <th class="w-10 text-center">No</th>
+            <th>Nama Siswa</th>
+            <th class="text-center w-16 text-emerald-700">Hadir</th>
+            <th class="text-center w-16 text-amber-700">Sakit</th>
+            <th class="text-center w-16 text-blue-700">Izin</th>
+            <th class="text-center w-16 text-rose-700">Alpa</th>
+            <th class="text-center w-20">% Hadir</th>
+            <th class="text-center w-20 text-amber-700">⭐ Aktif</th>
+            <th class="text-center w-20 text-rose-700">⚠️ Pasif</th>
+            <th class="text-center w-24 text-indigo-700">Poin Sikap</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($rekap['siswa'] as $idx => $siswa)
+            @php
+              $nis  = (string)$siswa->nis;
+              $abs  = $rekap['absensi'][$nis] ?? ['hadir'=>0,'sakit'=>0,'izin'=>0,'alpa'=>0,'total'=>0,'bintang'=>0,'peringatan'=>0];
+              $pct  = $abs['total'] > 0 ? round(($abs['hadir'] / $abs['total']) * 100) : 0;
+              $poinSikap = ($abs['bintang'] ?? 0) * 5;
+              $pctCls = $pct >= 85 ? 'text-emerald-600 font-extrabold' : ($pct >= 75 ? 'text-amber-600 font-extrabold' : 'text-rose-600 font-extrabold');
+            @endphp
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="text-center text-slate-400 text-xs font-medium">{{ $idx + 1 }}</td>
+              <td>
+                <div class="font-bold text-slate-900 text-sm">{{ $siswa->nama }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ $siswa->nis }}</div>
+              </td>
+              <td class="text-center font-bold text-emerald-700">{{ $abs['hadir'] }}</td>
+              <td class="text-center font-bold text-amber-700">{{ $abs['sakit'] }}</td>
+              <td class="text-center font-bold text-blue-700">{{ $abs['izin'] }}</td>
+              <td class="text-center font-bold text-rose-700">{{ $abs['alpa'] }}</td>
+              <td class="text-center {{ $pctCls }}">{{ $pct }}%</td>
+              <td class="text-center">
+                @if(($abs['bintang'] ?? 0) > 0)
+                  <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg font-extrabold text-xs">⭐{{ $abs['bintang'] }}</span>
+                @else
+                  <span class="text-slate-300 text-xs">—</span>
+                @endif
+              </td>
+              <td class="text-center">
+                @if(($abs['peringatan'] ?? 0) > 0)
+                  <span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-lg font-extrabold text-xs">⚠️{{ $abs['peringatan'] }}</span>
+                @else
+                  <span class="text-slate-300 text-xs">—</span>
+                @endif
+              </td>
+              <td class="text-center">
+                @if($poinSikap > 0)
+                  <span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-lg font-extrabold text-xs">+{{ $poinSikap }}</span>
+                @else
+                  <span class="text-slate-300 text-xs">0</span>
+                @endif
+              </td>
+            </tr>
+          @empty
+            <tr><td colspan="10" class="text-center py-10 text-slate-400 italic">Belum ada siswa terdaftar di kelas ini.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {{-- Rekap Nilai Per Mapel Per Siswa --}}
+  @if(!empty($rekap['nilai']))
+  <div class="card overflow-hidden">
+    <div class="card-header">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <i class="fa-solid fa-star-half-stroke text-indigo-600"></i> Rekapitulasi Nilai Siswa per Mata Pelajaran
+      </h3>
+      <a href="{{ route('grades.index', ['kelas' => $rekap['kelas'], 'mode' => 'leger']) }}"
+         class="btn btn-outline text-xs px-3 py-1.5">
+        <i class="fa-solid fa-table-list text-indigo-500"></i> Buka Leger Lengkap
+      </a>
+    </div>
+    <div class="overflow-x-auto -mx-2 sm:mx-0">
+      <table class="data-table min-w-[700px]">
+        <thead>
+          <tr>
+            <th class="w-10 text-center">No</th>
+            <th>Nama Siswa</th>
+            @foreach(collect($rekap['nilai'])->flatMap(fn($v) => array_keys($v))->unique()->sort() as $mapelCol)
+              <th class="text-center text-xs w-28" title="{{ $mapelCol }}">
+                {{ Str::limit($mapelCol, 12) }}
+              </th>
+            @endforeach
+          </tr>
+        </thead>
+        <tbody>
+          @php
+            $mapelCols = collect($rekap['nilai'])->flatMap(fn($v) => array_keys($v))->unique()->sort()->values()->all();
+          @endphp
+          @forelse($rekap['siswa'] as $idx => $siswa)
+            @php $nis = (string)$siswa->nis; @endphp
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="text-center text-slate-400 text-xs font-medium">{{ $idx + 1 }}</td>
+              <td>
+                <div class="font-bold text-slate-900 text-sm">{{ $siswa->nama }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ $siswa->nis }}</div>
+              </td>
+              @foreach($mapelCols as $mc)
+                @php
+                  $nv = $rekap['nilai'][$nis][$mc] ?? null;
+                  $finalScore = $nv['final'] ?? null;
+                  $scoreCls = $finalScore !== null
+                    ? ($finalScore >= 80 ? 'text-emerald-700 font-extrabold' : ($finalScore >= 70 ? 'text-indigo-700 font-bold' : ($finalScore >= 60 ? 'text-amber-700 font-bold' : 'text-rose-700 font-bold')))
+                    : 'text-slate-300';
+                @endphp
+                <td class="text-center {{ $scoreCls }}">
+                  {{ $finalScore !== null ? number_format($finalScore, 1) : '—' }}
+                </td>
+              @endforeach
+            </tr>
+          @empty
+            <tr><td colspan="20" class="text-center py-10 text-slate-400 italic">Belum ada data nilai.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-2 bg-slate-50/80 border-t border-slate-100">
+      <p class="text-[10px] text-slate-400">
+        ✅ Nilai sudah termasuk bonus Poin Sikap (+5 per Bintang Keaktifan). Warna: 
+        <span class="text-emerald-700 font-bold">≥80 Sangat Baik</span> · 
+        <span class="text-indigo-700 font-bold">≥70 Baik</span> · 
+        <span class="text-amber-700 font-bold">≥60 Cukup</span> · 
+        <span class="text-rose-700 font-bold">&lt;60 Perlu Bimbingan</span>
+      </p>
+    </div>
+  </div>
+  @endif
+
+</div>
+@endif
+
 @endsection
 
 @push('scripts')

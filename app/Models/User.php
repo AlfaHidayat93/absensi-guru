@@ -68,49 +68,79 @@ class User extends Authenticatable
      * Daftar kelas yang boleh diakses user ini.
      * Super Admin: semua kelas. Wali Kelas: kelas binaan + assigned. Guru: assigned saja.
      */
+    /**
+     * Daftar kelas yang boleh diakses user ini.
+     * Super Admin: semua kelas. Wali Kelas: kelas binaan + assigned. Guru: assigned saja.
+     */
     public function getAccessibleClasses(array $allClasses = []): array
     {
         if ($this->isSuperAdmin()) {
             return $allClasses;
         }
 
-        $classes = $this->assigned_classes ?? [];
-
-        // Wali Kelas mendapat akses otomatis ke kelas binaannya
+        $rawList = $this->assigned_classes ?? [];
         if ($this->isWaliKelas() && $this->homeroom_class) {
-            $classes[] = $this->homeroom_class;
+            $rawList[] = $this->homeroom_class;
+            $cleanHomeroom = trim(preg_replace('/^Wali\s+/i', '', $this->homeroom_class));
+            $rawList[] = $cleanHomeroom;
         }
 
-        $classes = array_values(array_unique($classes));
+        $rawList = array_values(array_unique(array_filter(array_map('trim', $rawList))));
 
-        // Filter hanya kelas yang benar-benar ada
-        if (!empty($allClasses)) {
-            $classes = array_values(array_intersect($classes, $allClasses));
+        if (empty($allClasses)) {
+            return $rawList;
         }
 
-        sort($classes);
-        return $classes;
+        // Matching cerdas dengan $allClasses (fleksibel terhadap tanda hubung/spasi/kasus huruf)
+        $matched = [];
+        foreach ($allClasses as $realClass) {
+            $normReal = strtolower(str_replace(['-', ' ', '_'], '', $realClass));
+            foreach ($rawList as $userCls) {
+                $normUser = strtolower(str_replace(['-', ' ', '_'], '', preg_replace('/^Wali\s+/i', '', $userCls)));
+                if ($normReal === $normUser || strtolower(trim($realClass)) === strtolower(trim($userCls))) {
+                    $matched[] = $realClass;
+                    break;
+                }
+            }
+        }
+
+        // Fallback ke rawList jika belum ada siswa terdaftar di DB
+        if (empty($matched)) {
+            $matched = $rawList;
+        }
+
+        sort($matched);
+        return array_values(array_unique($matched));
     }
 
     /**
      * Daftar mata pelajaran yang boleh diakses user ini.
-     * Super Admin: semua mapel. Guru/Wali Kelas: assigned saja.
+     * Super Admin & Wali Kelas: SEMUA mapel (Wali Kelas memantau seluruh mapel kelas binaannya).
+     * Guru: assigned saja.
      */
     public function getAccessibleSubjects(array $allSubjects = []): array
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isWaliKelas()) {
             return $allSubjects;
         }
 
         $subjects = $this->assigned_subjects ?? [];
-
-        // Filter hanya mapel yang benar-benar ada
         if (!empty($allSubjects)) {
-            $subjects = array_values(array_intersect($subjects, $allSubjects));
+            $matched = [];
+            foreach ($allSubjects as $realSubject) {
+                $normReal = strtolower(trim($realSubject));
+                foreach ($subjects as $us) {
+                    if (strtolower(trim($us)) === $normReal) {
+                        $matched[] = $realSubject;
+                        break;
+                    }
+                }
+            }
+            $subjects = !empty($matched) ? $matched : $subjects;
         }
 
         sort($subjects);
-        return $subjects;
+        return array_values(array_unique($subjects));
     }
 
     /**
@@ -122,11 +152,23 @@ class User extends Authenticatable
             return true;
         }
 
-        if ($this->isWaliKelas() && $this->homeroom_class === $class) {
-            return true;
+        $normTarget = strtolower(str_replace(['-', ' ', '_'], '', $class));
+
+        if ($this->isWaliKelas() && $this->homeroom_class) {
+            $normHome = strtolower(str_replace(['-', ' ', '_'], '', preg_replace('/^Wali\s+/i', '', $this->homeroom_class)));
+            if ($normTarget === $normHome) {
+                return true;
+            }
         }
 
-        return in_array($class, $this->assigned_classes ?? []);
+        foreach ($this->assigned_classes ?? [] as $ac) {
+            $normAc = strtolower(str_replace(['-', ' ', '_'], '', preg_replace('/^Wali\s+/i', '', $ac)));
+            if ($normTarget === $normAc) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -134,11 +176,18 @@ class User extends Authenticatable
      */
     public function canAccessSubject(string $subject): bool
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isWaliKelas()) {
             return true;
         }
 
-        return in_array($subject, $this->assigned_subjects ?? []);
+        $normTarget = strtolower(trim($subject));
+        foreach ($this->assigned_subjects ?? [] as $as) {
+            if (strtolower(trim($as)) === $normTarget) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
