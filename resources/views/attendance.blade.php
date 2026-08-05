@@ -145,6 +145,68 @@
 
 @if($selectedClass)
 
+{{-- Daftar Sesi Presensi Terdaftar --}}
+@if($classAbsensiList->isNotEmpty())
+  <div class="card no-print mb-6 border border-slate-200 shadow-sm">
+    <div class="card-header bg-slate-50/50 flex justify-between items-center py-3.5">
+      <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-indigo-500 text-base"></i> Sesi Presensi Terdaftar — Kelas {{ $selectedClass }}
+      </h3>
+      <span class="badge bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1">{{ $classAbsensiList->count() }} Sesi</span>
+    </div>
+    <div class="card-body p-0 overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-50 text-slate-700 font-bold uppercase border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3 text-center w-12">No</th>
+            <th class="px-4 py-3 w-32">Tanggal</th>
+            <th class="px-4 py-3 w-40">Jam Pembelajaran</th>
+            <th class="px-4 py-3">Mata Pelajaran</th>
+            <th class="px-4 py-3 w-48">Guru Pengampu</th>
+            <th class="px-4 py-3 text-center w-36">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          @foreach($classAbsensiList as $idx => $absItem)
+            @php
+              $absItemId = $absItem->id_absen ?: $absItem->id;
+              $isCurrent = (!empty($selectedSession) && (string)$selectedSession === (string)$absItemId)
+                || (empty($selectedSession) && $existingRecord && ($existingRecord['ID_Absen'] ?? $existingRecord['id'] ?? '') === $absItemId);
+            @endphp
+            <tr class="hover:bg-slate-50/80 transition-colors {{ $isCurrent ? 'bg-indigo-50/40 font-semibold' : '' }}">
+              <td class="px-4 py-3 text-center text-slate-400 font-medium">{{ $idx + 1 }}</td>
+              <td class="px-4 py-3 font-mono">{{ $absItem->tanggal ? $absItem->tanggal->format('d/m/Y') : '' }}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 bg-slate-100 rounded text-slate-700 font-mono text-[10px]">
+                  {{ $absItem->jam_mulai }} - {{ $absItem->jam_selesai }}
+                </span>
+              </td>
+              <td class="px-4 py-3">{{ $absItem->mata_pelajaran ?: '-' }}</td>
+              <td class="px-4 py-3 text-slate-500">{{ $absItem->guru ?: '-' }}</td>
+              <td class="px-4 py-3 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <a href="{{ route('attendance.index', [
+                       'kelas' => $selectedClass,
+                       'semester' => $selectedSemester,
+                       'tanggal' => $absItem->tanggal ? $absItem->tanggal->format('Y-m-d') : $selectedDate,
+                       'session' => $absItemId
+                     ]) }}" 
+                     class="px-3 py-1.5 rounded-lg border text-[10px] font-bold shadow-sm transition-all flex items-center gap-1
+                       {{ $isCurrent 
+                         ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700' 
+                         : 'bg-white border-slate-200 text-indigo-600 hover:bg-indigo-50' }}">
+                    <i class="fa-solid fa-pen-to-square"></i> {{ $isCurrent ? 'Sedang Diedit' : 'Edit Sesi' }}
+                  </a>
+                </div>
+              </td>
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
+  </div>
+@endif
+
 {{-- ── REKAPITULASI KEHADIRAN & KEAKTIFAN SEBELUMNYA ────────────────────── --}}
 <div class="card rekap-card-container mb-6">
   <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">

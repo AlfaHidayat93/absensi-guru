@@ -74,6 +74,7 @@ class AttendanceController extends Controller
         $matchingRecords = [];
         $rekapSiswa      = [];
         $totalPertemuan  = 0;
+        $classAbsensiList = collect();
 
         // Cek izin akses ke kelas yang dipilih
         if ($selectedClass && !$user->canAccessClass($selectedClass) && !$user->isSuperAdmin()) {
@@ -242,7 +243,7 @@ class AttendanceController extends Controller
             'classes', 'semesters', 'subjects', 'students', 'existingRecord',
             'detailKehadiran', 'selectedClass', 'selectedSemester', 'selectedDate',
             'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedSubject',
-            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList', 'previousRecord'
+            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList', 'previousRecord', 'classAbsensiList'
         ));
     }
 
