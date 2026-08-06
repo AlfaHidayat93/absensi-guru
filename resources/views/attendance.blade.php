@@ -27,6 +27,21 @@
       border: none !important;
       box-shadow: none !important;
     }
+    body.print-rekap-mode table {
+      border-collapse: collapse !important;
+      width: 100% !important;
+      font-size: 8px !important;
+    }
+    body.print-rekap-mode th, body.print-rekap-mode td {
+      border: 1.5px solid #64748b !important;
+      padding: 4px 5px !important;
+    }
+    body.print-rekap-mode th {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      font-weight: bold !important;
+      text-transform: uppercase !important;
+    }
   }
 
   .print-rekap-header, .print-rekap-footer {
@@ -170,19 +185,33 @@
 
   <div id="rekapContentSection" class="card-body border-t border-slate-100 hidden space-y-4">
     <div class="overflow-x-auto -mx-2 sm:mx-0">
-      <table class="w-full text-left text-xs text-slate-600 border border-slate-200 rounded-xl overflow-hidden min-w-[700px]">
-        <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300 uppercase tracking-wider">
+      <table class="w-full text-left text-xs text-slate-600 border border-slate-300 rounded-xl overflow-hidden min-w-[800px]">
+        <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300 uppercase tracking-wider text-[10px]">
           <tr>
-            <th class="px-3.5 py-3 w-10 text-center">No</th>
-            <th class="px-3.5 py-3 w-24">NIS</th>
-            <th class="px-3.5 py-3">Nama Siswa</th>
-            <th class="px-3.5 py-3 text-center text-emerald-700 font-extrabold">Hadir</th>
-            <th class="px-3.5 py-3 text-center text-amber-700 font-extrabold">Sakit</th>
-            <th class="px-3.5 py-3 text-center text-blue-700 font-extrabold">Izin</th>
-            <th class="px-3.5 py-3 text-center text-rose-700 font-extrabold">Alpa</th>
-            <th class="px-3.5 py-3 text-center font-extrabold">Total</th>
-            <th class="px-3.5 py-3 text-center">% Hadir</th>
-            <th class="px-3.5 py-3">Status Keaktifan & Catatan</th>
+            <th class="px-2 py-3 w-8 text-center border border-slate-200" rowspan="2">No</th>
+            <th class="px-2 py-3 w-20 border border-slate-200" rowspan="2">NIS</th>
+            <th class="px-2 py-3 border border-slate-200" rowspan="2">Nama Siswa</th>
+            <th class="px-2 py-3 text-center border border-slate-200" colspan="{{ $rekapAbsensiList->count() }}">Pertemuan / Tanggal</th>
+            <th class="px-2 py-3 text-center border border-slate-200" colspan="5">Rekapitulasi</th>
+            <th class="px-2 py-3 text-center border border-slate-200" rowspan="2">% H</th>
+            <th class="px-2 py-3 border border-slate-200" rowspan="2">Catatan Keaktifan & Detail Absen</th>
+          </tr>
+          <tr>
+            @foreach($rekapAbsensiList as $abs)
+              @php
+                $tglStr = $abs->tanggal ? $abs->tanggal->format('d/m') : '';
+                $jamStr = $abs->jam_mulai ? substr($abs->jam_mulai, 0, 5) : '';
+              @endphp
+              <th class="px-1 py-1 text-center border border-slate-200 font-mono text-[9px] min-w-[40px] bg-slate-50" title="{{ $abs->tanggal ? $abs->tanggal->format('d/m/Y') : '' }} ({{ $abs->jam_mulai }} - {{ $abs->jam_selesai }})">
+                {{ $tglStr }}
+                <span class="block text-[8px] text-slate-400 font-normal">{{ $jamStr }}</span>
+              </th>
+            @endforeach
+            <th class="px-1.5 py-1 text-center text-emerald-700 font-extrabold border border-slate-200 bg-emerald-50/20 text-[9px] w-8">H</th>
+            <th class="px-1.5 py-1 text-center text-amber-700 font-extrabold border border-slate-200 bg-amber-50/20 text-[9px] w-8">S</th>
+            <th class="px-1.5 py-1 text-center text-blue-700 font-extrabold border border-slate-200 bg-blue-50/20 text-[9px] w-8">I</th>
+            <th class="px-1.5 py-1 text-center text-rose-700 font-extrabold border border-slate-200 bg-rose-50/20 text-[9px] w-8">A</th>
+            <th class="px-1.5 py-1 text-center text-slate-800 font-extrabold border border-slate-200 bg-slate-50 text-[9px] w-8">T</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 bg-white">
@@ -191,38 +220,70 @@
               $nis = (string)$st['NIS'];
               $stat = $rekapSiswa[$nis] ?? ['hadir'=>0,'sakit'=>0,'izin'=>0,'alpa'=>0,'total'=>0,'persentase'=>0,'bintang'=>0,'peringatan'=>0,'catatan'=>[]];
               $pct = $stat['persentase'];
-              $pctColor = $pct >= 85 ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : ($pct >= 75 ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-rose-50 text-rose-700 border-rose-300');
+              $pctColor = $pct >= 85 ? 'text-emerald-700 font-bold' : ($pct >= 75 ? 'text-amber-700 font-bold' : 'text-rose-700 font-bold');
             @endphp
-            <tr class="hover:bg-slate-50 transition-colors">
-              <td class="px-3.5 py-2.5 text-center font-medium text-slate-500">{{ $idx + 1 }}</td>
-              <td class="px-3.5 py-2.5 font-mono text-slate-600">{{ $nis }}</td>
-              <td class="px-3.5 py-2.5 font-bold text-slate-900">{{ $st['Nama Siswa'] ?? $st['Nama'] ?? '-' }}</td>
-              <td class="px-3.5 py-2.5 text-center font-bold text-emerald-700 bg-emerald-50/30">{{ $stat['hadir'] }}</td>
-              <td class="px-3.5 py-2.5 text-center font-bold text-amber-700 bg-amber-50/30">{{ $stat['sakit'] }}</td>
-              <td class="px-3.5 py-2.5 text-center font-bold text-blue-700 bg-blue-50/30">{{ $stat['izin'] }}</td>
-              <td class="px-3.5 py-2.5 text-center font-bold text-rose-700 bg-rose-50/30">{{ $stat['alpa'] }}</td>
-              <td class="px-3.5 py-2.5 text-center font-bold text-slate-800">{{ $stat['total'] }}</td>
-              <td class="px-3.5 py-2.5 text-center">
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold border {{ $pctColor }}">
-                  {{ $pct }}%
-                </span>
-              </td>
-              <td class="px-3.5 py-2.5">
+            <tr class="hover:bg-slate-50/60 transition-colors">
+              <td class="px-2 py-1.5 text-center font-medium text-slate-500 border border-slate-200 text-[10px]">{{ $idx + 1 }}</td>
+              <td class="px-2 py-1.5 font-mono text-slate-600 border border-slate-200 text-[10px]">{{ $nis }}</td>
+              <td class="px-2 py-1.5 font-bold text-slate-900 border border-slate-200 text-[10px] whitespace-nowrap">{{ $st['Nama Siswa'] ?? $st['Nama'] ?? '-' }}</td>
+              
+              {{-- Kolom Status per Pertemuan --}}
+              @foreach($rekapAbsensiList as $abs)
+                @php
+                  $detail = $abs->detail_kehadiran ?? [];
+                  $val = $detail[$nis] ?? 'Hadir';
+                  $status = is_array($val) ? ($val['status'] ?? 'Hadir') : $val;
+                  $statusChar = strtoupper(substr($status, 0, 1));
+                  
+                  $statusClass = 'text-slate-300';
+                  if ($statusChar === 'S') $statusClass = 'text-amber-600 font-bold bg-amber-50';
+                  elseif ($statusChar === 'I') $statusClass = 'text-blue-600 font-bold bg-blue-50';
+                  elseif ($statusChar === 'A') $statusClass = 'text-rose-600 font-bold bg-rose-50';
+                  elseif ($statusChar === 'H') $statusClass = 'text-emerald-600 font-semibold';
+                @endphp
+                <td class="px-1 py-1.5 text-center border border-slate-200 text-[10px] {{ $statusClass }}">
+                  {{ $statusChar }}
+                </td>
+              @endforeach
+
+              <td class="px-1.5 py-1.5 text-center font-semibold text-emerald-700 border border-slate-200 bg-emerald-50/10 text-[10px]">{{ $stat['hadir'] }}</td>
+              <td class="px-1.5 py-1.5 text-center font-semibold text-amber-700 border border-slate-200 bg-amber-50/10 text-[10px]">{{ $stat['sakit'] }}</td>
+              <td class="px-1.5 py-1.5 text-center font-semibold text-blue-700 border border-slate-200 bg-blue-50/10 text-[10px]">{{ $stat['izin'] }}</td>
+              <td class="px-1.5 py-1.5 text-center font-semibold text-rose-700 border border-slate-200 bg-rose-50/10 text-[10px]">{{ $stat['alpa'] }}</td>
+              <td class="px-1.5 py-1.5 text-center font-semibold text-slate-700 border border-slate-200 bg-slate-50/10 text-[10px]">{{ $stat['total'] }}</td>
+              <td class="px-2 py-1.5 text-center border border-slate-200 text-[10px] {{ $pctColor }}">{{ $pct }}%</td>
+              <td class="px-2 py-1.5 border border-slate-200 text-[9px] leading-tight">
                 <div class="flex flex-wrap items-center gap-1.5">
                   @if($stat['bintang'] > 0)
-                    <span class="px-2 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 rounded-md font-bold text-[10px]">
-                      ⭐ {{ $stat['bintang'] }}x Aktif
+                    <span class="px-1.5 py-0.2 bg-amber-100 border border-amber-300 text-amber-900 rounded font-bold text-[9px]">
+                      ⭐{{ $stat['bintang'] }}x
                     </span>
                   @endif
                   @if($stat['peringatan'] > 0)
-                    <span class="px-2 py-0.5 bg-rose-100 border border-rose-300 text-rose-900 rounded-md font-bold text-[10px]">
-                      ⚠️ {{ $stat['peringatan'] }}x Pasif
+                    <span class="px-1.5 py-0.2 bg-rose-100 border border-rose-200 text-rose-900 rounded font-bold text-[9px]">
+                      ⚠️{{ $stat['peringatan'] }}x
                     </span>
                   @endif
-                  @if(!empty($stat['catatan']))
-                    @php $lastNote = end($stat['catatan']); @endphp
-                    <span class="text-[11px] text-slate-700 italic bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[200px]" title="{{ $lastNote['note'] ?? '' }}">
-                      "{{ $lastNote['note'] ?? '' }}"
+                  
+                  {{-- Rangkuman Tanggal Ketidakhadiran --}}
+                  @php
+                    $absentNotes = [];
+                    foreach($rekapAbsensiList as $abs) {
+                      $detail = $abs->detail_kehadiran ?? [];
+                      $val = $detail[$nis] ?? 'Hadir';
+                      $status = is_array($val) ? ($val['status'] ?? 'Hadir') : $val;
+                      $statusChar = strtoupper(substr($status, 0, 1));
+                      
+                      if (in_array($statusChar, ['S', 'I', 'A'])) {
+                        $tglStr = $abs->tanggal ? $abs->tanggal->format('d/m') : '';
+                        $noteText = is_array($val) && !empty($val['note']) ? ' ('.$val['note'].')' : '';
+                        $absentNotes[] = "$statusChar:$tglStr$noteText";
+                      }
+                    }
+                  @endphp
+                  @if(!empty($absentNotes))
+                    <span class="text-[9px] text-slate-600 font-medium bg-slate-100/80 border border-slate-200 px-1 py-0.5 rounded leading-none">
+                      Detail Absen: {{ implode(', ', $absentNotes) }}
                     </span>
                   @endif
                 </div>
@@ -230,7 +291,7 @@
             </tr>
           @empty
             <tr>
-              <td colspan="10" class="px-4 py-6 text-center text-slate-400 italic">Belum ada data rekapitulasi.</td>
+              <td colspan="{{ 11 + $rekapAbsensiList->count() }}" class="px-4 py-6 text-center text-slate-400 italic">Belum ada data rekapitulasi.</td>
             </tr>
           @endforelse
         </tbody>
@@ -675,10 +736,18 @@
     sec.classList.remove('hidden');
     icon.style.transform = 'rotate(180deg)';
 
+    // Tambahkan aturan landscape dinamis
+    const styleEl = document.createElement('style');
+    styleEl.id = 'print-landscape-style';
+    styleEl.innerHTML = '@page { size: landscape; margin: 10mm; }';
+    document.head.appendChild(styleEl);
+
     document.body.classList.add('print-rekap-mode');
     window.print();
     setTimeout(() => {
       document.body.classList.remove('print-rekap-mode');
+      const el = document.getElementById('print-landscape-style');
+      if (el) el.remove();
     }, 1000);
   }
 

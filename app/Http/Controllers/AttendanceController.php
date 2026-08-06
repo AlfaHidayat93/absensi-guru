@@ -195,7 +195,10 @@ class AttendanceController extends Controller
                 $queryAbsensi->where('mata_pelajaran', $selectedSubject);
             }
 
-            $rekapAbsensiList = $queryAbsensi->get();
+            $rekapAbsensiList = $queryAbsensi->orderBy('tanggal', 'asc')
+                ->orderBy('jam_mulai', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
             $totalPertemuan   = $rekapAbsensiList->count();
 
             foreach ($students as $st) {
