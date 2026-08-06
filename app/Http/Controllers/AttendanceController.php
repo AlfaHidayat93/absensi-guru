@@ -119,6 +119,7 @@ class AttendanceController extends Controller
         $rekapSiswa      = [];
         $totalPertemuan  = 0;
         $classAbsensiList = collect();
+        $rekapAbsensiList = collect();
 
         if ($selectedClass) {
             // Ambil daftar siswa untuk kelas terpilih
@@ -285,7 +286,7 @@ class AttendanceController extends Controller
             'classes', 'semesters', 'subjects', 'students', 'existingRecord',
             'detailKehadiran', 'selectedClass', 'selectedSemester', 'selectedDate',
             'matchingRecords', 'selectedSession', 'selectedGuru', 'selectedSubject',
-            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList', 'previousRecord', 'classAbsensiList'
+            'selectedJamMulai', 'selectedJamSelesai', 'teachers', 'rekapSiswa', 'totalPertemuan', 'jamList', 'previousRecord', 'classAbsensiList', 'rekapAbsensiList'
         ));
     }
 
